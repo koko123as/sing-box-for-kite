@@ -1,0 +1,98 @@
+name: Build Debug APK (multi-core, arm64-v8a)
+
+on:
+  push:
+    branches:
+      - feat/multicore
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: debug-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  multicore-tests:
+    name: Multi-core Go tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-core
+      - name: Multi-core gRPC coverage (every StartedService method handled or reviewed)
+        run: python3 tools/verify_multicore.py
+      - name: Profile detection, conversion, validation, routing rules, geo data and log level
+        working-directory: .core
+        env:
+          GOTOOLCHAIN: local
+        # with_quic: converted sing-box profiles carry Hysteria2 nodes.
+        run: >-
+          go test -tags with_quic,with_utls -ldflags=-checklinkname=0 ./experimental/libbox
+          -run '^Test(DetectCoreConfig|Convert|CheckMihomo|CheckXray|ResolveProfileCore|SubscriptionURL|DropUnbuiltTunStack|ConvertCoreShareLinksEnabled|CoreProfileStats|CoreInternals|CoreConfigArray|CoreDefaultLogLevel|CoreGeo|CoreRouting)'
+          -count=1 -v
+      - name: Upload module bump report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: core-module-bumps
+          path: core-module-bumps.txt
+          if-no-files-found: ignore
+          retention-days: 14
+
+  build:
+    name: libbox.aar + debug APK (other, arm64-v8a)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout app
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+          submodules: recursive
+
+      - id: core
+        uses: ./.github/actions/build-libbox
+        with:
+          platform: android/arm64
+
+      - name: Set up Java for Gradle
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build debug APK
+        run: |
+          export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/28.0.13004108"
+          ./gradlew :app:assembleOtherDebug -Parm64Only=true \
+            --no-daemon --console=plain --max-workers=2 \
+            '-Dorg.gradle.jvmargs=-Xmx4g -Dfile.encoding=UTF-8' \
+            -Pkotlin.compiler.execution.strategy=in-process
+
+      - name: Report APK size
+        run: |
+          for apk in app/build/outputs/apk/other/debug/*.apk; do
+            echo "- $(basename "$apk"): $(stat -c %s "$apk") bytes" | tee -a "$GITHUB_STEP_SUMMARY"
+          done
+
+      - name: Upload Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: sing-box-for-kite-${{ steps.core.outputs.version }}-${{ github.sha }}-arm64-v8a-debug
+          path: app/build/outputs/apk/other/debug/*.apk
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30

@@ -1,0 +1,75 @@
+name: Prepare multi-core libbox
+description: Check out the matching sing-box version and add the Xray and mihomo cores to libbox.
+
+outputs:
+  version:
+    description: Application version from version.properties.
+    value: ${{ steps.versions.outputs.version }}
+
+runs:
+  using: composite
+  steps:
+    - name: Read core and Go versions
+      id: versions
+      shell: bash
+      run: |
+        version=$(sed -n 's/^VERSION_NAME=//p' version.properties | tr -d '\r')
+        go_version=$(sed -n 's/^GO_VERSION=go//p' version.properties | tr -d '\r')
+        core_version=$(sed -n 's/^CORE_VERSION=//p' version.properties | tr -d '\r')
+        core_version=${core_version:-$version}
+        [[ "$version" =~ ^[0-9][0-9A-Za-z.+-]*$ ]]
+        [[ "$go_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+        echo "version=$version" >> "$GITHUB_OUTPUT"
+        echo "go_version=$go_version" >> "$GITHUB_OUTPUT"
+        echo "core_version=$core_version" >> "$GITHUB_OUTPUT"
+    - uses: actions/checkout@v5
+      with:
+        repository: SagerNet/sing-box
+        ref: v${{ steps.versions.outputs.core_version }}
+        path: .core
+        persist-credentials: false
+    - uses: actions/setup-go@v5
+      with:
+        go-version: ${{ steps.versions.outputs.go_version }}
+        cache-dependency-path: .core/go.sum
+    - name: Apply build patches
+      shell: bash
+      run: |
+        git -C .core apply --check ../libbox/libbox-no-legacy.patch
+        git -C .core apply ../libbox/libbox-no-legacy.patch
+        python3 tools/patch_multicore.py .core
+    - name: Resolve the pinned Xray and mihomo cores
+      shell: bash
+      working-directory: .core
+      env:
+        GOTOOLCHAIN: local
+      run: |
+        cp ../libbox/core_*.go experimental/libbox/
+        # mihomo is embedded the way ClashMetaForAndroid embeds it (cmfa tag):
+        # the app supplies system DNS and package lookups.
+        grep -q '"tfogo_checklinkname0")' cmd/internal/build_libbox/main.go
+        sed -i 's/"tfogo_checklinkname0")/"tfogo_checklinkname0", "cmfa")/' cmd/internal/build_libbox/main.go
+        xray=$(sed -n 's/^XRAY_MODULE_VERSION=//p' ../version.properties | tr -d '\r')
+        mihomo=$(sed -n 's/^MIHOMO_VERSION=//p' ../version.properties | tr -d '\r')
+        libxray=$(sed -n 's/^LIBXRAY_MODULE_VERSION=//p' ../version.properties | tr -d '\r')
+        [[ "$libxray" =~ ^v[0-9][0-9A-Za-z.+-]*$ ]]
+        [[ "$xray" =~ ^v[0-9][0-9A-Za-z.+-]*$ ]]
+        [[ "$mihomo" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+        cp go.mod ../core-go.mod.before
+        go mod edit -require=github.com/xtls/xray-core@"$xray" -require=github.com/metacubex/mihomo@v"$mihomo" -require=github.com/xtls/libxray@"$libxray"
+        go mod tidy
+        # libXray's share converter must be built against the same Xray commit.
+        test "$(go list -m -f '{{.Version}}' github.com/xtls/xray-core)" = "$xray"
+        test "$(go list -m -f '{{.Version}}' github.com/xtls/libxray)" = "$libxray"
+        test "$(go list -m -f '{{.Version}}' github.com/metacubex/mihomo)" = "v$mihomo"
+        # REALITY must be the version this Xray commit was built against.
+        xray_reality=$(curl -fsSL "https://proxy.golang.org/github.com/xtls/xray-core/@v/$xray.mod" | awk '$1=="github.com/xtls/reality" {print $2}')
+        test "$(go list -m -f '{{.Version}}' github.com/xtls/reality)" = "$xray_reality"
+        # Report every shared module the extra cores raised; sing itself must not move.
+        diff <(go mod edit -json ../core-go.mod.before | jq -r '.Require[] | "\(.Path) \(.Version)"' | sort) \
+             <(go mod edit -json go.mod | jq -r '.Require[] | "\(.Path) \(.Version)"' | sort) \
+             | sed -n 's/^> //p' > ../core-module-bumps.txt || true
+        echo "Shared or new modules after adding Xray $xray and mihomo v$mihomo:"
+        wc -l < ../core-module-bumps.txt
+        cat ../core-module-bumps.txt
+        test "$(go list -m -f '{{.Version}}' github.com/sagernet/sing)" = "$(go mod edit -json ../core-go.mod.before | jq -r '.Require[] | select(.Path=="github.com/sagernet/sing") | .Version')"

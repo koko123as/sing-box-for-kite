@@ -9,6 +9,7 @@ import androidx.lifecycle.viewModelScope
 import io.nekohasekai.libbox.Libbox
 import io.nekohasekai.sfa.R
 import io.nekohasekai.sfa.bg.UpdateProfileWork
+import io.nekohasekai.sfa.database.CoreProfile
 import io.nekohasekai.sfa.database.Profile
 import io.nekohasekai.sfa.database.ProfileManager
 import io.nekohasekai.sfa.database.Settings
@@ -35,6 +36,8 @@ data class EditProfileUiState(
     val autoUpdate: Boolean = false,
     val autoUpdateInterval: Int = 60,
     val lastUpdated: Date? = null,
+    val core: String = CoreProfile.AUTO,
+    val originalCore: String = CoreProfile.AUTO,
     // Original values for change detection
     val originalName: String = "",
     val originalIcon: String? = null,
@@ -90,6 +93,8 @@ class EditProfileViewModel(application: Application) : AndroidViewModel(applicat
                         autoUpdateInterval = typedProfile.autoUpdateInterval,
                         originalAutoUpdateInterval = typedProfile.autoUpdateInterval,
                         lastUpdated = typedProfile.lastUpdated,
+                        core = typedProfile.core,
+                        originalCore = typedProfile.core,
                         isLoading = false,
                     )
                 }
@@ -148,6 +153,13 @@ class EditProfileViewModel(application: Application) : AndroidViewModel(applicat
         }
     }
 
+    fun updateCore(core: String) {
+        val normalized = CoreProfile.normalize(core)
+        _uiState.update { state ->
+            state.copy(core = normalized, hasChanges = checkHasChanges(state.copy(core = normalized)))
+        }
+    }
+
     fun updateAutoUpdate(enabled: Boolean) {
         _uiState.update { state ->
             state.copy(
@@ -187,7 +199,8 @@ class EditProfileViewModel(application: Application) : AndroidViewModel(applicat
         state.icon != state.originalIcon ||
         state.remoteUrl != state.originalRemoteUrl ||
         state.autoUpdate != state.originalAutoUpdate ||
-        state.autoUpdateInterval != state.originalAutoUpdateInterval
+        state.autoUpdateInterval != state.originalAutoUpdateInterval ||
+        state.core != state.originalCore
 
     fun saveChanges() {
         val state = _uiState.value
@@ -205,6 +218,12 @@ class EditProfileViewModel(application: Application) : AndroidViewModel(applicat
                 profile.name = state.name
                 profile.icon = state.icon
                 profile.typed.remoteURL = state.remoteUrl
+                val coreChanged = state.core != state.originalCore
+                if (coreChanged) {
+                    // The saved configuration must run on the newly chosen core.
+                    CoreProfile.check(state.core, File(profile.typed.path).readText())
+                }
+                profile.typed.core = state.core
 
                 // Handle auto-update changes
                 val autoUpdateChanged = state.autoUpdate != state.originalAutoUpdate
@@ -213,6 +232,10 @@ class EditProfileViewModel(application: Application) : AndroidViewModel(applicat
 
                 // Save to database
                 ProfileManager.update(profile)
+
+                if (coreChanged && profile.id == Settings.selectedProfile) {
+                    runCatching { Libbox.newStandaloneCommandClient().serviceReload() }
+                }
 
                 // Reconfigure updater if auto-update was enabled
                 if (autoUpdateChanged && state.autoUpdate) {
@@ -227,6 +250,7 @@ class EditProfileViewModel(application: Application) : AndroidViewModel(applicat
                         originalRemoteUrl = state.remoteUrl,
                         originalAutoUpdate = state.autoUpdate,
                         originalAutoUpdateInterval = state.autoUpdateInterval,
+                        originalCore = state.core,
                         hasChanges = false,
                         isSaving = false,
                     )
@@ -255,8 +279,10 @@ class EditProfileViewModel(application: Application) : AndroidViewModel(applicat
                 var selectedProfileUpdated = false
 
                 // Fetch remote config
-                val content = HTTPClient().use { it.getString(profile.typed.remoteURL) }
-                Libbox.checkConfig(content)
+                val content = CoreProfile.prepare(
+                    profile.typed.core,
+                    HTTPClient().use { it.getString(profile.typed.remoteURL, profile.typed.core) },
+                ).content
 
                 // Check if content changed
                 val file = File(profile.typed.path)

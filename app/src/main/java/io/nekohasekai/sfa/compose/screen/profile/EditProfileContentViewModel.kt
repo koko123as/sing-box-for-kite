@@ -7,6 +7,7 @@ import io.nekohasekai.libbox.Libbox
 import io.nekohasekai.sfa.compat.ProfileCodeEditor
 import io.nekohasekai.sfa.compat.ProfileEditorColors
 import io.nekohasekai.sfa.database.Profile
+import io.nekohasekai.sfa.database.CoreProfile
 import io.nekohasekai.sfa.database.ProfileManager
 import io.nekohasekai.sfa.ktx.unwrap
 import kotlinx.coroutines.Dispatchers
@@ -125,8 +126,8 @@ class EditProfileContentViewModel(private val profileId: Long, initialIsReadOnly
             try {
                 _uiState.update { it.copy(isCheckingConfig = true) }
 
-                // Check configuration
-                Libbox.checkConfig(content)
+                // Check configuration with the profile's core
+                CoreProfile.check(profile?.typed?.core ?: CoreProfile.AUTO, content)
 
                 // Configuration is valid, clear any error
                 _uiState.update {
@@ -229,7 +230,8 @@ class EditProfileContentViewModel(private val profileId: Long, initialIsReadOnly
                     withContext(Dispatchers.Main) {
                         editor?.getText() ?: ""
                     }
-                val formatted = Libbox.formatConfig(currentContent).unwrap
+                val core = Libbox.resolveProfileCore(profile?.typed?.core ?: CoreProfile.AUTO, currentContent)
+                val formatted = Libbox.formatCoreConfig(core, currentContent).unwrap
 
                 if (formatted != currentContent) {
                     withContext(Dispatchers.Main) {

@@ -133,10 +133,17 @@ android {
 
     splits {
         abi {
+            // The multi-core libbox (sing-box + Xray + mihomo) is built for
+            // arm64 only in CI; -Parm64Only=true packages just that ABI.
+            val arm64Only = providers.gradleProperty("arm64Only").orNull.toBoolean()
             isEnable = true
-            isUniversalApk = true
+            isUniversalApk = !arm64Only
             reset()
-            include("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
+            if (arm64Only) {
+                include("arm64-v8a")
+            } else {
+                include("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
+            }
         }
     }
 
@@ -177,6 +184,16 @@ android {
             fileName = fileName.replace("-otherLegacy", "-legacy-android-5")
             fileName = fileName.replace("-other", "")
             output.outputFileName = fileName
+        }
+    }
+}
+
+// otherLegacy (Android 5) needs libbox-legacy.aar, which the multi-core build
+// does not produce: the variant is only configured when that AAR is present.
+androidComponents {
+    beforeVariants { variant ->
+        if (variant.productFlavors.any { it.second == "otherLegacy" } && !file("libs/libbox-legacy.aar").exists()) {
+            variant.enable = false
         }
     }
 }

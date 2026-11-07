@@ -10,6 +10,7 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import io.nekohasekai.libbox.Libbox
 import io.nekohasekai.sfa.Application
+import io.nekohasekai.sfa.database.CoreProfile
 import io.nekohasekai.sfa.database.ProfileManager
 import io.nekohasekai.sfa.database.Settings
 import io.nekohasekai.sfa.database.TypedProfile
@@ -75,8 +76,10 @@ class UpdateProfileWork {
                     continue
                 }
                 try {
-                    val content = HTTPClient().use { it.getString(profile.typed.remoteURL) }
-                    Libbox.checkConfig(content)
+                    val content = CoreProfile.prepare(
+                        profile.typed.core,
+                        HTTPClient().use { it.getString(profile.typed.remoteURL, profile.typed.core) },
+                    ).content
                     val file = File(profile.typed.path)
                     if (file.readText() != content) {
                         File(profile.typed.path).writeText(content)

@@ -32,7 +32,9 @@ import io.nekohasekai.sfa.compose.MainActivity
 import io.nekohasekai.sfa.constant.Action
 import io.nekohasekai.sfa.constant.Alert
 import io.nekohasekai.sfa.constant.Status
+import io.nekohasekai.sfa.database.CoreProfile
 import io.nekohasekai.sfa.database.ProfileManager
+import io.nekohasekai.sfa.database.RoutingRules
 import io.nekohasekai.sfa.database.Settings
 import io.nekohasekai.sfa.ktx.hasPermission
 import io.nekohasekai.sfa.vendor.Vendor
@@ -149,22 +151,7 @@ class BoxService(private val service: Service, private val platformInterface: Pl
             DefaultNetworkMonitor.start()
 
             try {
-                commandServer.startOrReloadService(
-                    content,
-                    OverrideOptions().apply {
-                        autoRedirect = Settings.autoRedirect
-                        if (Vendor.isPerAppProxyAvailable() && Settings.perAppProxyEnabled) {
-                            val appList = Settings.getEffectivePerAppProxyList()
-                            if (Settings.getEffectivePerAppProxyMode() == Settings.PER_APP_PROXY_INCLUDE) {
-                                includePackage =
-                                    PlatformInterfaceWrapper.StringArray((appList + Application.application.packageName).iterator())
-                            } else {
-                                excludePackage =
-                                    PlatformInterfaceWrapper.StringArray((appList - Application.application.packageName).iterator())
-                            }
-                        }
-                    },
-                )
+                startOrReloadCore(profile.typed.core, content)
             } catch (e: Exception) {
                 stopAndAlert(Alert.CreateService, e.message)
                 return
@@ -231,20 +218,7 @@ class BoxService(private val service: Service, private val platformInterface: Pl
         }
         lastProfileName = profile.name
         try {
-            commandServer.startOrReloadService(
-                content,
-                OverrideOptions().apply {
-                    autoRedirect = Settings.autoRedirect
-                    if (Vendor.isPerAppProxyAvailable() && Settings.perAppProxyEnabled) {
-                        val appList = Settings.getEffectivePerAppProxyList()
-                        if (Settings.getEffectivePerAppProxyMode() == Settings.PER_APP_PROXY_INCLUDE) {
-                            includePackage = PlatformInterfaceWrapper.StringArray((appList + Application.application.packageName).iterator())
-                        } else {
-                            excludePackage = PlatformInterfaceWrapper.StringArray((appList - Application.application.packageName).iterator())
-                        }
-                    }
-                },
-            )
+            startOrReloadCore(profile.typed.core, content)
         } catch (e: Exception) {
             stopAndAlert(Alert.CreateService, e.message)
             return
@@ -262,6 +236,34 @@ class BoxService(private val service: Service, private val platformInterface: Pl
                 return
             }
         }
+    }
+
+    /**
+     * Starts (or reloads) the profile directly on its own core: sing-box,
+     * Xray or mihomo. The user's routing rules are put ahead of the profile's
+     * rules for whichever core runs; rules that cannot apply are logged.
+     */
+    private fun startOrReloadCore(declaredCore: String, content: String) {
+        val core = Libbox.resolveProfileCore(declaredCore, content)
+        val overrides = OverrideOptions().apply {
+            autoRedirect = Settings.autoRedirect
+            if (Vendor.isPerAppProxyAvailable() && Settings.perAppProxyEnabled) {
+                val appList = Settings.getEffectivePerAppProxyList()
+                if (Settings.getEffectivePerAppProxyMode() == Settings.PER_APP_PROXY_INCLUDE) {
+                    includePackage = PlatformInterfaceWrapper.StringArray((appList + Application.application.packageName).iterator())
+                } else {
+                    excludePackage = PlatformInterfaceWrapper.StringArray((appList - Application.application.packageName).iterator())
+                }
+            }
+        }
+        val rules = RoutingRules.toCoreJson(RoutingRules.load())
+        if (core != CoreProfile.SING_BOX) {
+            // Xray and mihomo get the VpnService TUN fd directly; they need VPN mode.
+            if (service !is VPNService) error("android: $core profiles run in VPN mode only")
+            if (core == CoreProfile.XRAY) GeoData.ensureForXray(content + "\n" + rules)
+            DefaultNetworkMonitor.pushSystemDNS()
+        }
+        commandServer.startOrReloadCoreServiceWithRules(core, content, rules, overrides)
     }
 
     override fun getSystemProxyStatus(): SystemProxyStatus? {
@@ -318,7 +320,7 @@ class BoxService(private val service: Service, private val platformInterface: Pl
 
     private fun closeService() {
         runCatching {
-            commandServer.closeService()
+            commandServer.closeCoreService()
         }.onFailure {
             commandServer.setError("android: close service: ${it.message}")
         }

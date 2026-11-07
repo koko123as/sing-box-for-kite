@@ -3,6 +3,7 @@ package io.nekohasekai.sfa.bg
 import android.net.Network
 import android.os.Build
 import io.nekohasekai.libbox.InterfaceUpdateListener
+import io.nekohasekai.libbox.Libbox
 import io.nekohasekai.sfa.Application
 import java.net.NetworkInterface
 
@@ -15,6 +16,7 @@ object DefaultNetworkMonitor {
         DefaultNetworkListener.start(this) {
             defaultNetwork = it
             checkDefaultInterfaceUpdate(it)
+            pushSystemDNS()
         }
         defaultNetwork = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             Application.connectivity.activeNetwork
@@ -33,6 +35,13 @@ object DefaultNetworkMonitor {
             return network
         }
         return DefaultNetworkListener.get()
+    }
+
+    /** mihomo (cmfa build) resolves "system" DNS with the underlying network's servers. */
+    fun pushSystemDNS() {
+        val network = defaultNetwork ?: return
+        val servers = runCatching { Application.connectivity.getLinkProperties(network)?.dnsServers }.getOrNull() ?: return
+        Libbox.updateCoreSystemDNS(servers.mapNotNull { it.hostAddress?.substringBefore('%') }.joinToString(","))
     }
 
     fun setListener(listener: InterfaceUpdateListener?) {

@@ -6,6 +6,7 @@ import android.provider.OpenableColumns
 import io.nekohasekai.libbox.Libbox
 import io.nekohasekai.libbox.ProfileContent
 import io.nekohasekai.sfa.R
+import io.nekohasekai.sfa.database.CoreProfile
 import io.nekohasekai.sfa.database.Profile
 import io.nekohasekai.sfa.database.ProfileManager
 import io.nekohasekai.sfa.database.TypedProfile
@@ -129,6 +130,10 @@ class ProfileImportHandler(private val context: Context) {
                 )
             }
 
+            if (isJsonConfiguration(data)) {
+                return@withContext QRCodeParseResult.LocalProfile(name = shareLinkName(data))
+            }
+
             // Try to decode as profile content
             val content =
                 try {
@@ -164,6 +169,9 @@ class ProfileImportHandler(private val context: Context) {
                 // Handle remote profile URL
                 val profileName = extractProfileNameFromUrl(data)
                 importRemoteProfile(profileName, data)
+            } else if (isJsonConfiguration(data)) {
+                // Share links (vmess://, vless://, ...) or a plain core configuration.
+                importJsonConfiguration(data, shareLinkName(data))
             } else {
                 // Try to decode as profile content
                 val content =
@@ -273,6 +281,11 @@ class ProfileImportHandler(private val context: Context) {
         return ImportResult.Success(profile)
     }
 
+    private fun shareLinkName(data: String): String {
+        val fragment = data.lineSequence().firstOrNull { it.contains("://") }?.substringAfter('#', "")
+        return fragment?.let { runCatching { Uri.decode(it) }.getOrNull() }?.takeIf { it.isNotBlank() } ?: "Imported Profile"
+    }
+
     private fun extractProfileNameFromUrl(url: String): String {
         // Extract name from URL or use default
         return url.substringAfterLast("/")
@@ -315,17 +328,24 @@ class ProfileImportHandler(private val context: Context) {
         return filename
     }
 
+    /**
+     * A plain configuration of one of the cores (sing-box / Xray JSON, mihomo
+     * YAML) or share links / a Base64 node list, as opposed to an exported
+     * sing-box profile file.
+     */
     private fun isJsonConfiguration(content: String): Boolean {
         val trimmed = content.trimStart()
-        return trimmed.startsWith("{") || trimmed.startsWith("[")
+        if (trimmed.startsWith("{") || trimmed.startsWith("[")) return true
+        return runCatching {
+            Libbox.detectCoreConfig(content) in setOf(Libbox.CoreMihomo, Libbox.CoreXray, Libbox.CoreLinks)
+        }.getOrDefault(false)
     }
 
     private suspend fun importJsonConfiguration(jsonContent: String, profileName: String): ImportResult {
         return try {
-            // Validate the JSON configuration using sing-box
-            try {
-                // Try to check the configuration
-                Libbox.checkConfig(jsonContent)
+            // Convert share links and validate with the core the content belongs to.
+            val prepared = try {
+                CoreProfile.prepare(CoreProfile.AUTO, jsonContent)
             } catch (e: Exception) {
                 // Configuration validation failed
                 return ImportResult.Error(
@@ -351,7 +371,7 @@ class ProfileImportHandler(private val context: Context) {
             val fileID = ProfileManager.nextFileID()
             val configDirectory = File(context.filesDir, "configs").also { it.mkdirs() }
             val configFile = File(configDirectory, "$fileID.json")
-            configFile.writeText(jsonContent)
+            configFile.writeText(prepared.content)
             typedProfile.path = configFile.path
 
             // Create profile in database and select it

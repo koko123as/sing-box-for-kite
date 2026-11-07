@@ -8,6 +8,7 @@ import io.nekohasekai.sfa.bg.BoxService
 import io.nekohasekai.sfa.compose.base.BaseViewModel
 import io.nekohasekai.sfa.compose.base.UiEvent
 import io.nekohasekai.sfa.constant.Status
+import io.nekohasekai.sfa.database.CoreProfile
 import io.nekohasekai.sfa.database.Profile
 import io.nekohasekai.sfa.database.ProfileManager
 import io.nekohasekai.sfa.database.Settings
@@ -351,8 +352,10 @@ class DashboardViewModel :
 
             try {
                 // Fetch remote config
-                val content = HTTPClient().use { it.getString(profile.typed.remoteURL) }
-                Libbox.checkConfig(content)
+                val content = CoreProfile.prepare(
+                    profile.typed.core,
+                    HTTPClient().use { it.getString(profile.typed.remoteURL, profile.typed.core) },
+                ).content
 
                 // Check if content changed
                 val file = File(profile.typed.path)

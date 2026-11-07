@@ -1,6 +1,7 @@
 package io.nekohasekai.sfa.utils
 
 import io.nekohasekai.libbox.Libbox
+import io.nekohasekai.sfa.database.CoreProfile
 import io.nekohasekai.sfa.ktx.unwrap
 import java.io.Closeable
 import java.util.Locale
@@ -23,9 +24,10 @@ class HTTPClient : Closeable {
         client.modernTLS()
     }
 
-    fun getString(url: String): String {
+    fun getString(url: String, declaredCore: String = CoreProfile.AUTO): String {
         val request = client.newRequest()
-        request.setUserAgent(userAgent)
+        // Subscriptions answer in the format of the core the profile runs on.
+        request.setUserAgent(CoreProfile.subscriptionUserAgent(declaredCore, userAgent))
         request.setURL(url)
         val response = request.execute()
         return response.content.unwrap

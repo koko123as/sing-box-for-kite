@@ -1,0 +1,22 @@
+# StartedService methods passed straight to sing-box, reviewed as safe.
+# Each is core-independent or a sing-box-only action the UI does not offer
+# while Xray or mihomo runs. A new upstream method must be handled in
+# coreStartedService or added here (tools/verify_multicore.py checks).
+GetVersion                      # app/core version, core-independent
+SubscribeLog                    # the shared log ring; Xray/mihomo write into it
+ClearLogs                       # same log ring
+SubscribeNotifications          # app notifications, core-independent
+StartTailscalePing              # Tailscale endpoint (sing-box only)
+SetTailscaleExitNode
+TailscaleLogout
+GetTailscaleCertificate
+StartTailscaleSSHSession
+MarkTaildropInboxRead           # Taildrop (sing-box only)
+SendTaildropFiles
+DownloadTaildropFile
+DeleteTaildropFile
+CancelTaildropReceiving
+SubmitOpenConnectAuthResponse   # OpenConnect endpoint (sing-box only)
+CancelOpenConnectAuthChallenge
+SubmitOpenVPNChallengeResponse  # OpenVPN endpoint (sing-box only)
+CancelOpenVPNChallenge

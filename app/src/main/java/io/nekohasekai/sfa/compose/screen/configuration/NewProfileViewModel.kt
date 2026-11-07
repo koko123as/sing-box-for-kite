@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import io.nekohasekai.libbox.Libbox
 import io.nekohasekai.sfa.R
 import io.nekohasekai.sfa.bg.UpdateProfileWork
+import io.nekohasekai.sfa.database.CoreProfile
 import io.nekohasekai.sfa.database.Profile
 import io.nekohasekai.sfa.database.ProfileManager
 import io.nekohasekai.sfa.database.TypedProfile
@@ -26,6 +27,8 @@ data class NewProfileUiState(
     val name: String = "",
     val profileType: ProfileType = ProfileType.Local,
     val profileSource: ProfileSource = ProfileSource.CreateNew,
+    // auto / sing-box / xray / mihomo
+    val core: String = CoreProfile.AUTO,
     // Remote profile fields
     val remoteUrl: String = "",
     val autoUpdate: Boolean = true,
@@ -95,6 +98,10 @@ class NewProfileViewModel(application: Application) : AndroidViewModel(applicati
 
     fun updateProfileType(type: ProfileType) {
         _uiState.update { it.copy(profileType = type) }
+    }
+
+    fun updateCore(core: String) {
+        _uiState.update { it.copy(core = CoreProfile.normalize(core)) }
     }
 
     fun updateProfileSource(source: ProfileSource) {
@@ -227,6 +234,7 @@ class NewProfileViewModel(application: Application) : AndroidViewModel(applicati
         val typedProfile =
             TypedProfile().apply {
                 type = TypedProfile.Type.Local
+                core = state.core
             }
 
         val profile =
@@ -242,7 +250,7 @@ class NewProfileViewModel(application: Application) : AndroidViewModel(applicati
         // Get config content
         val configContent =
             when (state.profileSource) {
-                ProfileSource.CreateNew -> "{}"
+                ProfileSource.CreateNew -> CoreProfile.emptyConfig(state.core)
                 ProfileSource.Import -> {
                     if (state.qrsData != null) {
                         val content = Libbox.decodeProfileContent(state.qrsData)
@@ -259,7 +267,7 @@ class NewProfileViewModel(application: Application) : AndroidViewModel(applicati
                                     File(Uri.parse(sourceURL).path!!).readText()
                                 }
                                 sourceURL.startsWith("http://") || sourceURL.startsWith("https://") -> {
-                                    HTTPClient().use { it.getString(sourceURL) }
+                                    HTTPClient().use { it.getString(sourceURL, state.core) }
                                 }
                                 else -> throw Exception("Unsupported source: $sourceURL")
                             }
@@ -268,9 +276,9 @@ class NewProfileViewModel(application: Application) : AndroidViewModel(applicati
                 }
             }
 
-        // Validate config
-        Libbox.checkConfig(configContent)
-        configFile.writeText(configContent)
+        // Convert share links and validate with the profile's core
+        val prepared = CoreProfile.prepare(state.core, configContent)
+        configFile.writeText(prepared.content)
 
         // Create profile in database and select it
         ProfileManager.create(profile, andSelect = true)
@@ -287,6 +295,7 @@ class NewProfileViewModel(application: Application) : AndroidViewModel(applicati
                 autoUpdate = state.autoUpdate
                 autoUpdateInterval = state.autoUpdateInterval
                 lastUpdated = Date()
+                core = state.core
             }
 
         val profile =
@@ -300,9 +309,8 @@ class NewProfileViewModel(application: Application) : AndroidViewModel(applicati
         typedProfile.path = configFile.path
 
         // Fetch initial config - this MUST succeed for remote profiles
-        val content = HTTPClient().use { it.getString(state.remoteUrl) }
-        Libbox.checkConfig(content)
-        val configContent = content
+        val content = HTTPClient().use { it.getString(state.remoteUrl, state.core) }
+        val configContent = CoreProfile.prepare(state.core, content).content
 
         configFile.writeText(configContent)
 
