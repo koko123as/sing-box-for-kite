@@ -15,6 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.AdminPanelSettings
 import androidx.compose.material.icons.outlined.AltRoute
+import androidx.compose.material.icons.outlined.BugReport
 import androidx.compose.material.icons.outlined.Code
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Favorite
@@ -358,7 +359,43 @@ fun SettingsScreen(navController: NavController) {
                         .clickable {
                             val intent = android.content.Intent(android.content.Intent.ACTION_VIEW)
                             intent.data =
-                                android.net.Uri.parse("https://github.com/SagerNet/sing-box-for-android")
+                                android.net.Uri.parse("https://github.com/koko123as/sing-box-for-kite")
+                            context.startActivity(intent)
+                        },
+                    colors =
+                    ListItemDefaults.colors(
+                        containerColor = Color.Transparent,
+                    ),
+                )
+
+                ListItem(
+                    headlineContent = {
+                        Text(
+                            stringResource(R.string.feedback_upstream),
+                            style = MaterialTheme.typography.bodyLarge,
+                        )
+                    },
+                    leadingContent = {
+                        Icon(
+                            imageVector = Icons.Outlined.BugReport,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                    },
+                    trailingContent = {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Outlined.OpenInNew,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    },
+                    modifier =
+                    Modifier
+                        .clickable {
+                            // koko123as/sing-box-for-kite has issues disabled; app issues go upstream.
+                            val intent = android.content.Intent(android.content.Intent.ACTION_VIEW)
+                            intent.data =
+                                android.net.Uri.parse("https://github.com/SagerNet/sing-box-for-android/issues")
                             context.startActivity(intent)
                         },
                     colors =

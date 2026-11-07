@@ -86,6 +86,8 @@ fun CoreSettingsScreen(navController: NavController) {
     val scope = rememberCoroutineScope()
     var dataSize by remember { mutableStateOf("") }
     val version = remember { Libbox.version() }
+    // All three cores compiled into libbox.
+    val coreVersions = remember { "sing-box $version\nXray ${Libbox.xrayVersion()}\nmihomo ${Libbox.mihomoVersion()}" }
     var showVersionMenu by remember { mutableStateOf(false) }
     var disableDeprecatedWarnings by remember { mutableStateOf(Settings.disableDeprecatedWarnings) }
 
@@ -139,7 +141,7 @@ fun CoreSettingsScreen(navController: NavController) {
                         },
                         supportingContent = {
                             Text(
-                                version,
+                                coreVersions,
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(top = 4.dp),
@@ -177,7 +179,7 @@ fun CoreSettingsScreen(navController: NavController) {
                                     )
                                 },
                                 onClick = {
-                                    clipboardText = version
+                                    clipboardText = coreVersions
                                     Toast.makeText(
                                         context,
                                         R.string.copied_to_clipboard,
