@@ -401,7 +401,7 @@ private fun AppPickerDialog(selected: Set<String>, onDismiss: () -> Unit, onConf
             runCatching {
                 packageManager.getInstalledApplications(0)
                     .filter { it.packageName != context.packageName }
-                    .sortedWith(compareBy<ApplicationInfo> { it.flags and ApplicationInfo.FLAG_SYSTEM != 0 })
+                    .sortedWith(compareBy<ApplicationInfo> { (it.flags and ApplicationInfo.FLAG_SYSTEM) != 0 })
                     .map { InstalledApp(it.loadLabel(packageManager).toString(), it.packageName) }
             }.getOrDefault(emptyList())
         }
