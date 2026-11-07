@@ -26,6 +26,8 @@ import io.nekohasekai.sfa.compose.screen.log.LogViewModel
 import io.nekohasekai.sfa.compose.screen.privilegesettings.PrivilegeSettingsManageScreen
 import io.nekohasekai.sfa.compose.screen.profile.EditProfileRoute
 import io.nekohasekai.sfa.compose.screen.profileoverride.PerAppProxyScreen
+import io.nekohasekai.sfa.compose.screen.routing.EditRoutingRuleScreen
+import io.nekohasekai.sfa.compose.screen.routing.RoutingRulesScreen
 import io.nekohasekai.sfa.compose.screen.settings.AppSettingsScreen
 import io.nekohasekai.sfa.compose.screen.settings.CoreSettingsScreen
 import io.nekohasekai.sfa.compose.screen.settings.EditRemoteServerScreen
@@ -669,6 +671,28 @@ fun NavHost(
             popExitTransition = slideOutToRight,
         ) {
             PerAppProxyScreen(onBack = { navController.navigateUp() }, serviceStatus = serviceStatus)
+        }
+
+        composable(
+            route = "settings/routing",
+            enterTransition = slideInFromRight,
+            exitTransition = slideOutToLeft,
+            popEnterTransition = slideInFromLeft,
+            popExitTransition = slideOutToRight,
+        ) {
+            RoutingRulesScreen(navController = navController, serviceStatus = serviceStatus)
+        }
+
+        composable(
+            route = "settings/routing/edit/{ruleId}",
+            arguments = listOf(navArgument("ruleId") { type = NavType.StringType }),
+            enterTransition = slideInFromRight,
+            exitTransition = slideOutToLeft,
+            popEnterTransition = slideInFromLeft,
+            popExitTransition = slideOutToRight,
+        ) { backStackEntry ->
+            val ruleId = backStackEntry.arguments?.getString("ruleId") ?: "new"
+            EditRoutingRuleScreen(navController = navController, ruleId = ruleId, serviceStatus = serviceStatus)
         }
 
         composable(
