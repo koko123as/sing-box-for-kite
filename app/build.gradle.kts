@@ -98,7 +98,13 @@ android {
         release {
             isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            signingConfig = signingConfigs.getByName("release")
+            // Without the keystore secrets (LOCAL_PROPERTIES) a release is
+            // signed with the debug key so CI still produces an installable APK.
+            signingConfig = if (getProps("KEYSTORE_PASS").isNotEmpty()) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
             vcsInfo.include = false
         }
     }

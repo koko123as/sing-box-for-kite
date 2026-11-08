@@ -801,7 +801,10 @@ fun AppSettingsScreen(
             ),
         ) {
             Column {
-                val isFDroid = UpdateSource.fromString(currentSource) == UpdateSource.FDROID
+                // F-Droid settings only apply where F-Droid is an offered update
+                // source (not in KiteBox's GitHub builds).
+                val isFDroid = UpdateSource.FDROID in Vendor.updateSources &&
+                    UpdateSource.fromString(currentSource) == UpdateSource.FDROID
                 val updateItemCount =
                     run {
                         var count = 0

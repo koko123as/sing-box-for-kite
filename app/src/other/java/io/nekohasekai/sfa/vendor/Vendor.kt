@@ -16,7 +16,6 @@ import io.nekohasekai.sfa.update.UpdateInfo
 import io.nekohasekai.sfa.update.UpdateSource
 import io.nekohasekai.sfa.update.UpdateState
 import io.nekohasekai.sfa.update.UpdateTrack
-import io.nekohasekai.sfa.update.checkFDroidUpdate
 
 object Vendor : VendorInterface {
     private const val TAG = "Vendor"
@@ -97,15 +96,14 @@ object Vendor : VendorInterface {
 
     override val hasCustomUpdate = true
 
-    override val updateSources = listOf(UpdateSource.GITHUB, UpdateSource.FDROID)
+    // KiteBox is published only as GitHub releases of koko123as/sing-box-for-kite;
+    // F-Droid carries the upstream app, so it is not offered as a source.
+    override val updateSources = listOf(UpdateSource.GITHUB)
 
-    override fun checkUpdateAsync(): UpdateInfo? = when (UpdateSource.fromString(Settings.updateSource)) {
-        UpdateSource.FDROID -> checkFDroidUpdate(Application.application)
-        UpdateSource.GITHUB -> {
-            val track = UpdateTrack.fromString(Settings.updateTrack)
-            GitHubUpdateChecker().use { checker ->
-                checker.checkUpdate(track, Settings.githubToken)
-            }
+    override fun checkUpdateAsync(): UpdateInfo? {
+        val track = UpdateTrack.fromString(Settings.updateTrack)
+        return GitHubUpdateChecker().use { checker ->
+            checker.checkUpdate(track, Settings.githubToken)
         }
     }
 

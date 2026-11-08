@@ -14,6 +14,7 @@ import java.io.Closeable
 
 class GitHubUpdateChecker : Closeable {
     companion object {
+        // KiteBox updates come only from this repository's GitHub releases.
         private const val RELEASES_URL = "https://api.github.com/repos/koko123as/sing-box-for-kite/releases"
         private const val METADATA_FILENAME = "SFA-version-metadata.json"
     }
@@ -50,24 +51,44 @@ class GitHubUpdateChecker : Closeable {
         if (!Libbox.compareSemver(release.version, BuildConfig.VERSION_NAME)) {
             return null
         }
-        val metadata = downloadMetadata(release) ?: return null
-
-        val isLegacy = Build.VERSION.SDK_INT < Build.VERSION_CODES.M
-        val apkAsset = release.assets.find { asset ->
-            asset.name.endsWith(".apk") &&
-                !asset.name.contains("play") &&
-                asset.name.contains("legacy-android-5") == isLegacy
-        }
+        // The metadata file is optional: KiteBox releases need only the APKs.
+        val metadata = runCatching { downloadMetadata(release) }.getOrNull()
 
         return UpdateInfo(
-            versionCode = metadata.versionCode,
+            versionCode = metadata?.versionCode?.takeIf { it > 0 }
+                ?: versionCodeFromNotes(release.body)
+                ?: (BuildConfig.VERSION_CODE + 1),
             versionName = release.version,
-            downloadUrl = apkAsset?.browserDownloadUrl ?: release.htmlUrl,
+            downloadUrl = pickApk(release.assets)?.browserDownloadUrl ?: release.htmlUrl,
             releaseUrl = release.htmlUrl,
             releaseNotes = release.body,
             isPrerelease = release.prerelease,
-            fileSize = apkAsset?.size ?: 0,
+            fileSize = pickApk(release.assets)?.size ?: 0,
         )
+    }
+
+    /**
+     * The APK for this device: one built for its primary ABI
+     * (KiteBox-<version>-arm64-v8a.apk), else a universal one.
+     */
+    private fun pickApk(assets: List<GitHubAsset>): GitHubAsset? {
+        val isLegacy = Build.VERSION.SDK_INT < Build.VERSION_CODES.M
+        val apks = assets.filter { asset ->
+            asset.name.endsWith(".apk") &&
+                !asset.name.contains("play") &&
+                !asset.name.contains("debug") &&
+                asset.name.contains("legacy-android-5") == isLegacy
+        }
+        for (abi in Build.SUPPORTED_ABIS) {
+            apks.firstOrNull { it.name.contains("-$abi") }?.let { return it }
+        }
+        val abiNames = listOf("arm64-v8a", "armeabi-v7a", "x86_64", "x86")
+        return apks.firstOrNull { asset -> abiNames.none { asset.name.contains("-$it") } }
+    }
+
+    /** "Version code: 748" in the release notes (written by the release workflow). */
+    private fun versionCodeFromNotes(body: String?): Int? = body?.let {
+        Regex("""(?i)version[ _-]?code\W+(\d+)""").find(it)?.groupValues?.get(1)?.toIntOrNull()
     }
 
     private fun downloadMetadata(release: GitHubRelease): VersionMetadata? {
