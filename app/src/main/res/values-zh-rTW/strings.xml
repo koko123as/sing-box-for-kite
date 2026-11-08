@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
     <!-- App -->
-    <string name="app_name" translatable="false">sing-box</string>
+    <string name="app_name" translatable="false">KiteBox</string>
     <string name="app_version_title">應用程式版本</string>
     <string name="language">語言</string>
     <string name="system_default">跟隨系統</string>
@@ -263,12 +263,12 @@
     <string name="background_permission_description">請授予必要權限，讓 VPN 可以正常運作。\n\n若您使用的是中國廠商裝置，授權後此提示卡片可能仍會顯示。</string>
     <string name="request_background_permission">忽略電池最佳化</string>
     <string name="location_permission_title">位置權限</string>
-    <string name="location_permission_description">您的設定檔包含 &lt;strong&gt;&lt;tt&gt;wifi_ssid&lt;/tt&gt; 或 &lt;tt&gt;wifi_bssid&lt;/tt&gt; 路由規則&lt;/strong&gt;。為了使它們正常工作，sing-box 在&lt;strong&gt;背景&lt;/strong&gt;使用 &lt;strong&gt;位置&lt;/strong&gt; 權限來取得已連線 Wi-Fi 網路資訊。這些資訊將&lt;strong&gt;僅用於路由&lt;/strong&gt;。</string>
+    <string name="location_permission_description">您的設定檔包含 &lt;strong&gt;&lt;tt&gt;wifi_ssid&lt;/tt&gt; 或 &lt;tt&gt;wifi_bssid&lt;/tt&gt; 路由規則&lt;/strong&gt;。為了使它們正常工作，KiteBox 在&lt;strong&gt;背景&lt;/strong&gt;使用 &lt;strong&gt;位置&lt;/strong&gt; 權限來取得已連線 Wi-Fi 網路資訊。這些資訊將&lt;strong&gt;僅用於路由&lt;/strong&gt;。</string>
     <string name="location_permission_background_description">在 Android 10 及更高版本中，需要&lt;strong&gt;背景位置&lt;/strong&gt;權限。選擇&lt;strong&gt;始終允許&lt;/strong&gt;以授予權限。</string>
     <string name="local_network_permission_title">區域網路權限</string>
     <string name="local_network_permission_description">Android 17 及更高版本要求區域網路權限才能存取你的 Wi-Fi 或乙太網路。Android 以附近的裝置的名義請求該權限。</string>
     <string name="notification_permission_title">通知權限</string>
-    <string name="notification_permission_required_description">若未授予通知權限，sing-box 無法顯示即時網速。請先授權，或關閉即時網速通知後再啟動服務。</string>
+    <string name="notification_permission_required_description">若未授予通知權限，KiteBox 無法顯示即時網速。請先授權，或關閉即時網速通知後再啟動服務。</string>
     <string name="root_access_required">需要 Root 權限</string>
     <string name="root_access_denied">Root 權限被拒絕</string>
 
@@ -596,7 +596,7 @@
     <string name="power_report_enable_description">每次執行服務都會儲存一份報告</string>
 
     <!-- Xposed Module -->
-    <string name="xposed_description">sing-box 的特權強化</string>
+    <string name="xposed_description">KiteBox 的特權強化</string>
     <!-- Privileged Enhancement -->
     <string name="privilege_settings">特權強化</string>
     <string name="privilege_module_title">特權模組</string>
@@ -673,7 +673,7 @@
     <string name="taildrop_no_files_selected">未選擇檔案</string>
     <string name="taildrop_connecting">正在連線…</string>
     <string name="taildrop_dismiss">關閉</string>
-    <string name="taildrop_open_app">開啟 sing-box</string>
+    <string name="taildrop_open_app">開啟 KiteBox</string>
     <string name="taildrop_notification_title">正在傳送檔案</string>
     <string name="core_auto">自動</string>
     <string name="profile_core">核心</string>
@@ -715,8 +715,8 @@
     <string name="geo_data_update_summary">Xray 與 mihomo 規則使用的 geoip / geosite</string>
     <string name="geo_data_updated">地理資料已更新</string>
     <string name="geo_data_update_failed">更新失敗：%1$s</string>
+    <string name="feedback_upstream">問題回報（上游 sing-box-for-android）</string>
     <string name="core_keep_one_enabled">至少需要保留一個核心啟用</string>
     <string name="core_disabled">%s 核心已在 設定 › 核心 中關閉</string>
     <string name="about_app_summary">版本 %s · sing-box、Xray、mihomo 三核心</string>
-    <string name="feedback_upstream">問題回報（上游 sing-box-for-android）</string>
 </resources>

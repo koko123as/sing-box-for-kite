@@ -16,7 +16,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.IntentCompat
 import io.nekohasekai.sfa.usbip.USBIPManager
 
-private const val ACTION_USB_PERMISSION = "io.nekohasekai.sfa.action.USB_PERMISSION"
+private const val ACTION_USB_PERMISSION = "io.kitebox.app.action.USB_PERMISSION"
 
 @Composable
 fun rememberUsbAttacher(serverTag: String): (UsbDevice) -> Unit {

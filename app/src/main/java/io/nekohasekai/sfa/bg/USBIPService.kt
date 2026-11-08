@@ -135,7 +135,7 @@ class USBIPService : Service() {
     }
 
     companion object {
-        const val ACTION_STOP = "io.nekohasekai.sfa.action.USBIP_STOP"
+        const val ACTION_STOP = "io.kitebox.app.action.USBIP_STOP"
         private const val NOTIFICATION_ID = 2
         private const val NOTIFICATION_CHANNEL = "usbip"
 

@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
     <!-- App -->
-    <string name="app_name" translatable="false">sing-box</string>
+    <string name="app_name" translatable="false">KiteBox</string>
     <string name="app_version_title">App version</string>
     <string name="language">Language</string>
     <string name="system_default">System default</string>
@@ -263,12 +263,12 @@
     <string name="background_permission_description">Apply for the necessary permissions in order for the VPN to function properly.\n\nIf you are using a device made by a Chinese company, the card may not disappear after the permission is granted.</string>
     <string name="request_background_permission">Ignore</string>
     <string name="location_permission_title">Location permission</string>
-    <string name="location_permission_description">Your profile contains &lt;strong&gt;&lt;tt&gt;wifi_ssid&lt;/tt&gt; or &lt;tt&gt;wifi_bssid&lt;/tt&gt; routing rules&lt;/strong&gt;. To make them work, sing-box uses the &lt;strong&gt;location&lt;/strong&gt; permission &lt;strong&gt;in the background&lt;/strong&gt; to get information about the connected Wi-Fi network. The information will be used &lt;strong&gt;for routing purposes only&lt;/strong&gt;.</string>
+    <string name="location_permission_description">Your profile contains &lt;strong&gt;&lt;tt&gt;wifi_ssid&lt;/tt&gt; or &lt;tt&gt;wifi_bssid&lt;/tt&gt; routing rules&lt;/strong&gt;. To make them work, KiteBox uses the &lt;strong&gt;location&lt;/strong&gt; permission &lt;strong&gt;in the background&lt;/strong&gt; to get information about the connected Wi-Fi network. The information will be used &lt;strong&gt;for routing purposes only&lt;/strong&gt;.</string>
     <string name="location_permission_background_description">On Android 10 and up, &lt;strong&gt;background location&lt;/strong&gt; permission is required. Select &lt;strong&gt;Allow all the time&lt;/strong&gt; to grant the permission.</string>
     <string name="local_network_permission_title">Local network permission</string>
     <string name="local_network_permission_description">Android 17 and later versions require the local network permission to access your Wi-Fi or Ethernet network. Android requests it as nearby devices.</string>
     <string name="notification_permission_title">Notification permission</string>
-    <string name="notification_permission_required_description">sing-box is unable to show real-time network speeds without the permission to send notifications. Please grant the permission or disable real-time network speeds notification before starting the service.</string>
+    <string name="notification_permission_required_description">KiteBox is unable to show real-time network speeds without the permission to send notifications. Please grant the permission or disable real-time network speeds notification before starting the service.</string>
     <string name="root_access_required">Root access required</string>
     <string name="root_access_denied">Root access denied</string>
 
@@ -567,7 +567,7 @@
     <string name="taildrop_no_files_selected">No files selected</string>
     <string name="taildrop_connecting">Connecting…</string>
     <string name="taildrop_dismiss">Dismiss</string>
-    <string name="taildrop_open_app">Open sing-box</string>
+    <string name="taildrop_open_app">Open KiteBox</string>
     <string name="taildrop_notification_title">Sending files</string>
 
     <!-- STUN Test -->
@@ -625,7 +625,7 @@
     <string name="power_report_enable_description">A report is saved for each service run</string>
 
     <!-- Xposed Module -->
-    <string name="xposed_description">Privileged Enhancement for sing-box</string>
+    <string name="xposed_description">Privileged Enhancement for KiteBox</string>
 
     <!-- Privileged Enhancement -->
     <string name="privilege_module_title">Privilege modules</string>
@@ -783,8 +783,8 @@
     <string name="geo_data_update_summary">geoip / geosite used by Xray and mihomo rules</string>
     <string name="geo_data_updated">Geo data updated</string>
     <string name="geo_data_update_failed">Update failed: %1$s</string>
+    <string name="feedback_upstream">Issues (upstream sing-box-for-android)</string>
     <string name="core_keep_one_enabled">At least one core must stay enabled</string>
     <string name="core_disabled">%s is turned off in Settings › Core</string>
     <string name="about_app_summary">Version %s · sing-box, Xray and mihomo in one app</string>
-    <string name="feedback_upstream">Issues (upstream sing-box-for-android)</string>
 </resources>

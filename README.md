@@ -1,6 +1,8 @@
-# SFA (sing-box-for-kite)
+# KiteBox (sing-box-for-kite)
 
-Experimental Android client for sing-box, the universal proxy platform.
+Experimental Android client for sing-box, the universal proxy platform,
+with the Xray and mihomo cores built in. Package `io.kitebox.app`; it
+installs beside the upstream app (`io.nekohasekai.sfa`).
 
 This fork (https://github.com/koko123as/sing-box-for-kite) adds the Xray and
 mihomo cores and user routing rules. It is based on
@@ -26,6 +28,20 @@ mihomo（`MIHOMO_VERSION`，按 ClashMetaForAndroid 的方式以 `cmfa` 标签�
 - **默认日志等级**：配置未设置时，sing-box 以 `warn`、Xray 以 `warning`、mihomo 以 `warning` 运行；日志页默认显示 warn 及以上。
 - **地理数据**：Xray 的 `geoip:`/`geosite:` 与 mihomo 的 GEOIP/GEOSITE 共用 `<工作目录>/cores/mihomo` 下的文件；
   mihomo 会自行下载缺失文件，Xray 配置用到时在启动前自动下载，也可在「设置 → 路由规则 → 更新地理数据」手动更新。
+
+### 订阅、导入与内核开关
+
+- **订阅返回多个配置的 JSON 数组**：创建和更新订阅时每个配置拆成独立的配置（名称为「订阅名 - remarks」），更新时按 remarks（无则按序号）对应回原配置，订阅新增的配置会自动添加。错误信息会写明是哪个内核报的错（如 `mihomo: ...`）。
+- **导入文件 / QRS / 二维码**时可选择内核（默认自动识别）。
+- **设置 → 内核**：sing-box、mihomo、Xray 各占一行，显示版本并可单独关闭（至少保留一个）；关闭的内核不会出现在内核选择里，其配置也不会启动。
+
+### 发布与更新
+
+检查更新只读取本仓库的 GitHub Releases（不再需要版本元数据文件，也不提供 F-Droid 来源）。推送与 `version.properties`
+中 `VERSION_NAME` 一致的标签 `v<VERSION_NAME>` 会触发 `.github/workflows/release.yml`，构建 arm64-v8a 的
+`KiteBox-<版本>-arm64-v8a.apk` 并发布。要让每次发布的 APK 签名一致（可覆盖安装），请在仓库 Secrets 中设置
+`LOCAL_PROPERTIES`（base64 编码的 `KEYSTORE_PASS=`/`ALIAS_NAME=`/`ALIAS_PASS=`）以及可选的 `RELEASE_KEYSTORE_BASE64`
+（自己的 keystore，base64）；未设置时以临时 debug 密钥签名。
 
 ### 路由规则
 

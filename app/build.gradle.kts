@@ -72,12 +72,14 @@ android {
     }
 
     defaultConfig {
-        applicationId = "io.nekohasekai.sfa"
+        // KiteBox installs beside upstream sing-box for Android (SFA); the code
+        // namespace stays io.nekohasekai.sfa.
+        applicationId = "io.kitebox.app"
         minSdk = 24
         targetSdk = 37
         versionCode = getVersionProps("VERSION_CODE").toInt()
         versionName = getVersionProps("VERSION_NAME")
-        base.archivesName.set("SFA-${versionName}")
+        base.archivesName.set("KiteBox-${versionName}")
     }
 
     signingConfigs {

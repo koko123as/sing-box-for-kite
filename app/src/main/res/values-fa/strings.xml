@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
     <!-- App -->
-    <string name="app_name" translatable="false">sing-box</string>
+    <string name="app_name" translatable="false">KiteBox</string>
     <string name="app_version_title">نسخه برنامه</string>
     <string name="language">زبان</string>
     <string name="system_default">پیش‌فرض سیستم</string>
@@ -592,7 +592,7 @@
     <string name="power_report_enable_description">آمار زمان پردازنده، بیدارسازی و ترافیک سرویس را ثبت می‌کند. برای هر اجرای سرویس یک گزارش ذخیره می‌شود.</string>
 
     <!-- Xposed Module -->
-    <string name="xposed_description">بهبود دسترسی ویژه برای sing-box</string>
+    <string name="xposed_description">بهبود دسترسی ویژه برای KiteBox</string>
 
     <!-- Privileged Enhancement -->
     <string name="privilege_module_title">ماژول‌های دسترسی ویژه</string>
@@ -668,7 +668,7 @@
     <string name="taildrop_no_files_selected">فایلی انتخاب نشده است</string>
     <string name="taildrop_connecting">در حال اتصال…</string>
     <string name="taildrop_dismiss">بستن</string>
-    <string name="taildrop_open_app">باز کردن sing-box</string>
+    <string name="taildrop_open_app">باز کردن KiteBox</string>
     <string name="taildrop_notification_title">در حال ارسال فایل‌ها</string>
     <string name="core_auto">خودکار</string>
     <string name="profile_core">هسته</string>
@@ -710,7 +710,7 @@
     <string name="geo_data_update_summary">geoip / geosite مورد استفادهٔ قوانین Xray و mihomo</string>
     <string name="geo_data_updated">داده‌های جغرافیایی به‌روزرسانی شد</string>
     <string name="geo_data_update_failed">به‌روزرسانی ناموفق بود: %1$s</string>
+    <string name="feedback_upstream">گزارش مشکل (sing-box-for-android بالادستی)</string>
     <string name="core_keep_one_enabled">At least one core must stay enabled</string>
     <string name="core_disabled">%s is turned off in Settings › Core</string>
-    <string name="feedback_upstream">گزارش مشکل (sing-box-for-android بالادستی)</string>
 </resources>

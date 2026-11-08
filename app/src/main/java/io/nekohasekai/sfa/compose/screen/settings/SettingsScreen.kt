@@ -1,5 +1,6 @@
 package io.nekohasekai.sfa.compose.screen.settings
 
+import io.nekohasekai.sfa.BuildConfig
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -292,6 +293,33 @@ fun SettingsScreen(navController: NavController) {
             ),
         ) {
             Column {
+                // App identity: KiteBox and its version.
+                ListItem(
+                    headlineContent = {
+                        Text(
+                            stringResource(R.string.app_name),
+                            style = MaterialTheme.typography.bodyLarge,
+                        )
+                    },
+                    supportingContent = {
+                        Text(
+                            stringResource(R.string.about_app_summary, BuildConfig.VERSION_NAME),
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    },
+                    leadingContent = {
+                        Icon(
+                            imageVector = Icons.Outlined.Info,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                    },
+                    colors =
+                    ListItemDefaults.colors(
+                        containerColor = Color.Transparent,
+                    ),
+                )
+
                 ListItem(
                     headlineContent = {
                         Text(
