@@ -141,7 +141,8 @@ fun DashboardScreen(
     ) {
         val bottomPadding = when {
             showStartFab -> 88.dp
-            showStatusBar -> 74.dp
+            // The scaffold padding already includes the status bar's height.
+            showStatusBar -> 8.dp
             else -> 0.dp
         }
         LazyColumn(

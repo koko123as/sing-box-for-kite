@@ -676,7 +676,6 @@
     <string name="profile_core">内核</string>
     <string name="profile_core_hint">自动：按配置内容识别内核（sing-box JSON、Xray JSON、Clash/mihomo YAML）。分享链接会转换为所选内核的配置。Xray 与 mihomo 仅支持 VPN 模式。</string>
     <string name="routing_rules">路由规则</string>
-    <string name="routing_rules_summary">让指定域名、IP 或应用走特定节点</string>
     <string name="routing_rules_note">规则在启动和重载时作用于当前运行的内核（sing-box、Xray 或 mihomo），优先于配置自带的规则。目标节点或策略组不在当前配置中的规则会被跳过，并在日志中给出警告。应用规则仅在 VPN 模式下生效。</string>
     <string name="routing_rules_empty">还没有路由规则</string>
     <string name="routing_rule_add">添加规则</string>

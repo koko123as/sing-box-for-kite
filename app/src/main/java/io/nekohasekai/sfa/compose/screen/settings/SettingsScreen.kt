@@ -201,12 +201,6 @@ fun SettingsScreen(navController: NavController) {
                             style = MaterialTheme.typography.bodyLarge,
                         )
                     },
-                    supportingContent = {
-                        Text(
-                            stringResource(R.string.routing_rules_summary),
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
-                    },
                     leadingContent = {
                         Icon(
                             imageVector = Icons.Outlined.AltRoute,

@@ -674,7 +674,6 @@
     <string name="profile_core">هسته</string>
     <string name="profile_core_hint">خودکار، هسته را از روی پیکربندی تشخیص می‌دهد: JSON سینگ‌باکس، JSON ایکس‌ری یا YAML کلش/میهومو. لینک‌های اشتراک به پیکربندی هستهٔ انتخاب‌شده تبدیل می‌شوند. Xray و mihomo فقط در حالت VPN اجرا می‌شوند.</string>
     <string name="routing_rules">قوانین مسیریابی</string>
-    <string name="routing_rules_summary">ارسال دامنه‌ها، IPها یا برنامه‌ها از طریق یک گره انتخابی</string>
     <string name="routing_rules_note">قوانین هنگام شروع و بارگذاری مجدد، پیش از قوانین خود پیکربندی، روی هستهٔ در حال اجرا (sing-box، Xray یا mihomo) اعمال می‌شوند. قانونی که گره یا گروه آن در پیکربندی فعلی نیست، نادیده گرفته و در گزارش ثبت می‌شود. قوانین برنامه فقط در حالت VPN کار می‌کنند.</string>
     <string name="routing_rules_empty">هنوز قانونی وجود ندارد</string>
     <string name="routing_rule_add">افزودن قانون</string>

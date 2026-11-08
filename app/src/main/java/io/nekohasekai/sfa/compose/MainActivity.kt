@@ -1,5 +1,13 @@
 package io.nekohasekai.sfa.compose
 
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
+import io.nekohasekai.sfa.database.CoreProfile
+import io.nekohasekai.sfa.compose.component.CoreSelector
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.ContentResolver
@@ -593,6 +601,8 @@ class MainActivity :
         if (showImportLocalProfileDialog && pendingImportLocalProfileUri != null && pendingImportLocalProfileName != null) {
             val importName = pendingImportLocalProfileName!!
             val importUri = pendingImportLocalProfileUri!!
+            // The core the imported profile runs on: auto-detected by default.
+            var importCore by remember(importUri) { mutableStateOf(CoreProfile.AUTO) }
             AlertDialog(
                 onDismissRequest = {
                     showImportLocalProfileDialog = false
@@ -600,14 +610,19 @@ class MainActivity :
                     pendingImportLocalProfileUri = null
                 },
                 title = { Text(stringResource(R.string.import_profile_confirm_title)) },
-                text = { Text(stringResource(R.string.import_profile_confirm_message, importName)) },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        Text(stringResource(R.string.import_profile_confirm_message, importName))
+                        CoreSelector(selected = importCore, onSelected = { importCore = it })
+                    }
+                },
                 confirmButton = {
                     TextButton(onClick = {
                         showImportLocalProfileDialog = false
                         pendingImportLocalProfileName = null
                         pendingImportLocalProfileUri = null
                         scope.launch {
-                            when (val result = importHandler.importFromUri(importUri)) {
+                            when (val result = importHandler.importFromUri(importUri, importCore)) {
                                 is ProfileImportHandler.ImportResult.Success -> {
                                     navController.navigate(ProfileRoutes.editProfile(result.profile.id)) {
                                         launchSingleTop = true
@@ -1016,7 +1031,23 @@ class MainActivity :
         }
 
         val scaffoldContent: @Composable (PaddingValues) -> Unit = { paddingValues ->
-            CompositionLocalProvider(LocalScaffoldPadding provides paddingValues) {
+            // Pages are padded by the measured height of the status bar that
+            // floats over them ("Started", or the remote session bar) on top
+            // of the scaffold's own padding (navigation bar and system
+            // insets), so the bar never covers the end of a page.
+            val layoutDirection = LocalLayoutDirection.current
+            val density = LocalDensity.current
+            var statusBarHeightPx by remember { mutableIntStateOf(0) }
+            LaunchedEffect(useNavigationRail) {
+                if (useNavigationRail) statusBarHeightPx = 0
+            }
+            val pagePadding = PaddingValues(
+                start = paddingValues.calculateStartPadding(layoutDirection),
+                top = paddingValues.calculateTopPadding(),
+                end = paddingValues.calculateEndPadding(layoutDirection),
+                bottom = paddingValues.calculateBottomPadding() + with(density) { statusBarHeightPx.toDp() },
+            )
+            CompositionLocalProvider(LocalScaffoldPadding provides pagePadding) {
                 Box(
                     modifier = Modifier.fillMaxSize().consumeWindowInsets(paddingValues),
                 ) {
@@ -1060,7 +1091,10 @@ class MainActivity :
                                 connectionsCount = dashboardUiState.connectionsCount,
                                 onConnectionsClick = { showConnectionsSheet = true },
                                 onDisconnectClick = { RemoteControlManager.exitRemoteControl() },
-                                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = bottomOverlayPadding),
+                                modifier = Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .padding(bottom = bottomOverlayPadding)
+                                    .onSizeChanged { statusBarHeightPx = it.height },
                             )
                         } else {
                             ServiceStatusBar(
@@ -1073,7 +1107,10 @@ class MainActivity :
                                 connectionsCount = dashboardUiState.connectionsCount,
                                 onConnectionsClick = { showConnectionsSheet = true },
                                 onStopClick = { dashboardViewModel.toggleService() },
-                                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = bottomOverlayPadding),
+                                modifier = Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .padding(bottom = bottomOverlayPadding)
+                                    .onSizeChanged { statusBarHeightPx = it.height },
                             )
                         }
                     }

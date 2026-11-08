@@ -747,7 +747,6 @@
     <string name="profile_core">Core</string>
     <string name="profile_core_hint">Auto picks the core from the configuration: sing-box JSON, Xray JSON or Clash/mihomo YAML. Share links are converted into a profile of the chosen core. Xray and mihomo run in VPN mode only.</string>
     <string name="routing_rules">Routing rules</string>
-    <string name="routing_rules_summary">Send domains, IPs or apps through a chosen node</string>
     <string name="routing_rules_note">Rules apply to whichever core runs (sing-box, Xray or mihomo) at start and reload, ahead of the profile\'s own rules. A rule whose node or group is not in the running profile is skipped and logged as a warning. App rules work in VPN mode only.</string>
     <string name="routing_rules_empty">No routing rules yet</string>
     <string name="routing_rule_add">Add rule</string>

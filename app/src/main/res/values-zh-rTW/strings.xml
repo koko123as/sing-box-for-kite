@@ -679,7 +679,6 @@
     <string name="profile_core">核心</string>
     <string name="profile_core_hint">自動：依設定內容辨識核心（sing-box JSON、Xray JSON、Clash/mihomo YAML）。分享連結會轉換為所選核心的設定。Xray 與 mihomo 僅支援 VPN 模式。</string>
     <string name="routing_rules">路由規則</string>
-    <string name="routing_rules_summary">讓指定網域、IP 或應用程式走特定節點</string>
     <string name="routing_rules_note">規則在啟動和重新載入時作用於目前執行的核心（sing-box、Xray 或 mihomo），優先於設定自帶的規則。目標節點或策略群組不在目前設定中的規則會被略過，並在日誌中給出警告。應用程式規則僅在 VPN 模式下生效。</string>
     <string name="routing_rules_empty">尚無路由規則</string>
     <string name="routing_rule_add">新增規則</string>

@@ -682,7 +682,6 @@
     <string name="profile_core">Ядро</string>
     <string name="profile_core_hint">«Авто» определяет ядро по конфигурации: JSON sing-box, JSON Xray или YAML Clash/mihomo. Ссылки преобразуются в профиль выбранного ядра. Xray и mihomo работают только в режиме VPN.</string>
     <string name="routing_rules">Правила маршрутизации</string>
-    <string name="routing_rules_summary">Направлять домены, IP или приложения через выбранный узел</string>
     <string name="routing_rules_note">Правила применяются к работающему ядру (sing-box, Xray или mihomo) при запуске и перезагрузке, перед собственными правилами профиля. Правило, чей узел или группа отсутствует в профиле, пропускается с предупреждением в журнале. Правила для приложений работают только в режиме VPN.</string>
     <string name="routing_rules_empty">Правил пока нет</string>
     <string name="routing_rule_add">Добавить правило</string>
