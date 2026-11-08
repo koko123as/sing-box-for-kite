@@ -16,6 +16,7 @@ object SettingsKey {
     const val DYNAMIC_NOTIFICATION = "dynamic_notification"
     const val DISABLE_DEPRECATED_WARNINGS = "disable_deprecated_warnings"
     const val ROUTING_RULES = "routing_rules"
+    const val DISABLED_CORES = "disabled_cores"
 
     const val AUTO_REDIRECT = "auto_redirect"
     const val PER_APP_PROXY_ENABLED = "per_app_proxy_enabled"

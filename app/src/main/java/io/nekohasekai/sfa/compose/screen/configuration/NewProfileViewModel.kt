@@ -10,6 +10,7 @@ import io.nekohasekai.sfa.bg.UpdateProfileWork
 import io.nekohasekai.sfa.database.CoreProfile
 import io.nekohasekai.sfa.database.Profile
 import io.nekohasekai.sfa.database.ProfileManager
+import io.nekohasekai.sfa.database.RemoteProfiles
 import io.nekohasekai.sfa.database.TypedProfile
 import io.nekohasekai.sfa.utils.HTTPClient
 import kotlinx.coroutines.Dispatchers
@@ -21,7 +22,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.InputStream
-import java.util.Date
 
 data class NewProfileUiState(
     val name: String = "",
@@ -276,52 +276,50 @@ class NewProfileViewModel(application: Application) : AndroidViewModel(applicati
                 }
             }
 
-        // Convert share links and validate with the profile's core
-        val prepared = CoreProfile.prepare(state.core, configContent)
-        configFile.writeText(prepared.content)
+        // Convert share links and validate with the profile's core. A JSON
+        // array of configs becomes one profile per config.
+        val entries = CoreProfile.prepareAll(state.core, configContent)
+        configFile.writeText(entries.first().content)
+        if (entries.size > 1) {
+            profile.name = "${state.name} - ${entries.first().remarks.ifEmpty { entries.first().key }}"
+        }
 
         // Create profile in database and select it
         ProfileManager.create(profile, andSelect = true)
+
+        for (entry in entries.drop(1)) {
+            val extraFile = File(configDirectory, "${ProfileManager.nextFileID()}.json")
+            extraFile.writeText(entry.content)
+            val extra = Profile(
+                name = "${state.name} - ${entry.remarks.ifEmpty { entry.key }}",
+                typed = TypedProfile().apply {
+                    type = TypedProfile.Type.Local
+                    core = state.core
+                    path = extraFile.path
+                },
+            ).apply { userOrder = ProfileManager.nextOrder() }
+            ProfileManager.create(extra)
+        }
 
         return profile
     }
 
     private suspend fun createRemoteProfile(state: NewProfileUiState): Profile {
-        val context = getApplication<Application>()
-        val typedProfile =
-            TypedProfile().apply {
-                type = TypedProfile.Type.Remote
-                remoteURL = state.remoteUrl
-                autoUpdate = state.autoUpdate
-                autoUpdateInterval = state.autoUpdateInterval
-                lastUpdated = Date()
-                core = state.core
-            }
-
-        val profile =
-            Profile(name = state.name, typed = typedProfile).apply {
-                userOrder = ProfileManager.nextOrder()
-            }
-
-        val fileID = ProfileManager.nextFileID()
-        val configDirectory = File(context.filesDir, "configs").also { it.mkdirs() }
-        val configFile = File(configDirectory, "$fileID.json")
-        typedProfile.path = configFile.path
-
-        // Fetch initial config - this MUST succeed for remote profiles
-        val content = HTTPClient().use { it.getString(state.remoteUrl, state.core) }
-        val configContent = CoreProfile.prepare(state.core, content).content
-
-        configFile.writeText(configContent)
-
-        // Create profile in database and select it
-        ProfileManager.create(profile, andSelect = true)
+        // Fetch the initial config - this MUST succeed for remote profiles. A
+        // subscription serving several configs becomes one profile per config.
+        val profiles = RemoteProfiles.create(
+            name = state.name,
+            url = state.remoteUrl,
+            declaredCore = state.core,
+            autoUpdate = state.autoUpdate,
+            autoUpdateInterval = state.autoUpdateInterval,
+        )
 
         // Reconfigure updater if auto-update is enabled
         if (state.autoUpdate) {
             UpdateProfileWork.reconfigureUpdater()
         }
 
-        return profile
+        return profiles.first()
     }
 }

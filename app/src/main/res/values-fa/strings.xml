@@ -358,7 +358,7 @@
     <string name="error_empty_configuration">پیکربندی خالی است</string>
     <string name="error_empty_file">فایل خالی است</string>
     <string name="error_decode_profile">بازگشایی پروفایل ناموفق بود: %s</string>
-    <string name="error_invalid_configuration">پیکربندی sing-box نامعتبر است: %s</string>
+    <string name="error_invalid_configuration">پیکربندی نامعتبر است: %s</string>
     <string name="error_start_command_server">شروع سرور فرمان</string>
     <string name="error_create_service">ایجاد سرویس</string>
     <string name="error_start_service">شروع سرویس</string>
@@ -711,5 +711,7 @@
     <string name="geo_data_update_summary">geoip / geosite مورد استفادهٔ قوانین Xray و mihomo</string>
     <string name="geo_data_updated">داده‌های جغرافیایی به‌روزرسانی شد</string>
     <string name="geo_data_update_failed">به‌روزرسانی ناموفق بود: %1$s</string>
+    <string name="core_keep_one_enabled">At least one core must stay enabled</string>
+    <string name="core_disabled">%s is turned off in Settings › Core</string>
     <string name="feedback_upstream">گزارش مشکل (sing-box-for-android بالادستی)</string>
 </resources>

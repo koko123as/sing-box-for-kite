@@ -12,9 +12,9 @@ import io.nekohasekai.sfa.bg.UpdateProfileWork
 import io.nekohasekai.sfa.database.CoreProfile
 import io.nekohasekai.sfa.database.Profile
 import io.nekohasekai.sfa.database.ProfileManager
+import io.nekohasekai.sfa.database.RemoteProfiles
 import io.nekohasekai.sfa.database.Settings
 import io.nekohasekai.sfa.database.TypedProfile
-import io.nekohasekai.sfa.utils.HTTPClient
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -278,24 +278,11 @@ class EditProfileViewModel(application: Application) : AndroidViewModel(applicat
             try {
                 var selectedProfileUpdated = false
 
-                // Fetch remote config
-                val content = CoreProfile.prepare(
-                    profile.typed.core,
-                    HTTPClient().use { it.getString(profile.typed.remoteURL, profile.typed.core) },
-                ).content
-
-                // Check if content changed
-                val file = File(profile.typed.path)
-                if (!file.exists() || file.readText() != content) {
-                    file.writeText(content)
-                    if (profile.id == Settings.selectedProfile) {
-                        selectedProfileUpdated = true
-                    }
+                // Fetch the remote config (a JSON array of configs is split
+                // into one profile per config) and save it.
+                if (RemoteProfiles.update(profile) && profile.id == Settings.selectedProfile) {
+                    selectedProfileUpdated = true
                 }
-
-                // Update last updated time
-                profile.typed.lastUpdated = Date()
-                ProfileManager.update(profile)
 
                 // Update UI state with success indicator
                 _uiState.update {

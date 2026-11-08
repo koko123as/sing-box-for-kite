@@ -1,5 +1,6 @@
 package io.nekohasekai.sfa.compose.screen.dashboard
 
+import io.nekohasekai.sfa.compose.component.rememberProfileCoreLabel
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -321,14 +322,17 @@ private fun ProfilePickerRow(
                     overflow = TextOverflow.Ellipsis,
                 )
 
+                val coreLabel = rememberProfileCoreLabel(profile)
+                val typeLabel = when (profile.typed.type) {
+                    TypedProfile.Type.Local -> stringResource(R.string.profile_type_local)
+                    TypedProfile.Type.Remote -> stringResource(
+                        R.string.profile_type_remote_updated,
+                        RelativeTimeFormatter.format(context, profile.typed.lastUpdated),
+                    )
+                }
                 Text(
-                    text = when (profile.typed.type) {
-                        TypedProfile.Type.Local -> stringResource(R.string.profile_type_local)
-                        TypedProfile.Type.Remote -> stringResource(
-                            R.string.profile_type_remote_updated,
-                            RelativeTimeFormatter.format(context, profile.typed.lastUpdated),
-                        )
-                    },
+                    // e.g. "mihomo • Remote • 10 minutes ago"
+                    text = if (coreLabel != null) "$coreLabel • $typeLabel" else typeLabel,
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                 )

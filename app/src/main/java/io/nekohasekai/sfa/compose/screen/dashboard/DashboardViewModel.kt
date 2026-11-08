@@ -8,15 +8,14 @@ import io.nekohasekai.sfa.bg.BoxService
 import io.nekohasekai.sfa.compose.base.BaseViewModel
 import io.nekohasekai.sfa.compose.base.UiEvent
 import io.nekohasekai.sfa.constant.Status
-import io.nekohasekai.sfa.database.CoreProfile
 import io.nekohasekai.sfa.database.Profile
 import io.nekohasekai.sfa.database.ProfileManager
+import io.nekohasekai.sfa.database.RemoteProfiles
 import io.nekohasekai.sfa.database.Settings
 import io.nekohasekai.sfa.database.TypedProfile
 import io.nekohasekai.sfa.utils.AppLifecycleObserver
 import io.nekohasekai.sfa.utils.CommandClient
 import io.nekohasekai.sfa.utils.CommandTarget
-import io.nekohasekai.sfa.utils.HTTPClient
 import io.nekohasekai.sfa.utils.RemoteControlManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -29,9 +28,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONException
-import java.io.File
 import java.util.Collections
-import java.util.Date
 
 enum class CardGroup(val pairGroup: CardPairGroup? = null) {
     ClashMode,
@@ -351,23 +348,9 @@ class DashboardViewModel :
             }
 
             try {
-                // Fetch remote config
-                val content = CoreProfile.prepare(
-                    profile.typed.core,
-                    HTTPClient().use { it.getString(profile.typed.remoteURL, profile.typed.core) },
-                ).content
-
-                // Check if content changed
-                val file = File(profile.typed.path)
-                var contentChanged = false
-                if (!file.exists() || file.readText() != content) {
-                    file.writeText(content)
-                    contentChanged = true
-                }
-
-                // Update last updated time
-                profile.typed.lastUpdated = Date()
-                ProfileManager.update(profile)
+                // Fetch the remote config (a JSON array of configs is split
+                // into one profile per config) and save it.
+                val contentChanged = RemoteProfiles.update(profile)
 
                 if (contentChanged && profile.id == Settings.selectedProfile) {
                     try {

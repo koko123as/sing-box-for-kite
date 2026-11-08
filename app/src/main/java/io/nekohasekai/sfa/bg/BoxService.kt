@@ -245,6 +245,9 @@ class BoxService(private val service: Service, private val platformInterface: Pl
      */
     private fun startOrReloadCore(declaredCore: String, content: String) {
         val core = Libbox.resolveProfileCore(declaredCore, content)
+        if (!CoreProfile.isEnabled(core)) {
+            error(service.getString(R.string.core_disabled, CoreProfile.label(service, core)))
+        }
         val overrides = OverrideOptions().apply {
             autoRedirect = Settings.autoRedirect
             if (Vendor.isPerAppProxyAvailable() && Settings.perAppProxyEnabled) {

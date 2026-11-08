@@ -1,5 +1,6 @@
 package io.nekohasekai.sfa.compose.screen.settings
 
+import io.nekohasekai.sfa.database.CoreProfile
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
@@ -87,7 +88,15 @@ fun CoreSettingsScreen(navController: NavController) {
     var dataSize by remember { mutableStateOf("") }
     val version = remember { Libbox.version() }
     // All three cores compiled into libbox.
-    val coreVersions = remember { "sing-box $version\nXray ${Libbox.xrayVersion()}\nmihomo ${Libbox.mihomoVersion()}" }
+    val coreRows = remember {
+        listOf(
+            CoreProfile.SING_BOX to version,
+            CoreProfile.MIHOMO to Libbox.mihomoVersion(),
+            CoreProfile.XRAY to Libbox.xrayVersion(),
+        )
+    }
+    val coreVersions = remember { coreRows.joinToString("\n") { (core, coreVersion) -> "${CoreProfile.label(context, core)} $coreVersion" } }
+    var enabledCores by remember { mutableStateOf(CoreProfile.cores.associateWith { CoreProfile.isEnabled(it) }) }
     var showVersionMenu by remember { mutableStateOf(false) }
     var disableDeprecatedWarnings by remember { mutableStateOf(Settings.disableDeprecatedWarnings) }
 
@@ -132,39 +141,60 @@ fun CoreSettingsScreen(navController: NavController) {
             Column {
                 // Version Info
                 Box {
-                    ListItem(
-                        headlineContent = {
-                            Text(
-                                stringResource(R.string.core_version_title),
-                                style = MaterialTheme.typography.bodyLarge,
-                            )
-                        },
-                        supportingContent = {
-                            Text(
-                                coreVersions,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(top = 4.dp),
-                            )
-                        },
-                        leadingContent = {
-                            Icon(
-                                imageVector = Icons.Outlined.Info,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                            )
-                        },
+                    // One row per core compiled into libbox: its version and
+                    // whether it may run. At least one core stays enabled.
+                    Column(
                         modifier = Modifier
                             .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
                             .combinedClickable(
                                 onClick = {},
                                 onLongClick = { showVersionMenu = true },
                             ),
-                        colors =
-                        ListItemDefaults.colors(
-                            containerColor = Color.Transparent,
-                        ),
-                    )
+                    ) {
+                        coreRows.forEach { (core, coreVersion) ->
+                            val enabled = enabledCores[core] ?: true
+                            val lastEnabled = enabled && enabledCores.count { it.value } <= 1
+                            ListItem(
+                                headlineContent = {
+                                    Text(
+                                        CoreProfile.label(context, core),
+                                        style = MaterialTheme.typography.bodyLarge,
+                                    )
+                                },
+                                supportingContent = {
+                                    Text(
+                                        coreVersion,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                },
+                                leadingContent = {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Info,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                    )
+                                },
+                                trailingContent = {
+                                    Switch(
+                                        checked = enabled,
+                                        enabled = !lastEnabled,
+                                        onCheckedChange = { checked ->
+                                            if (CoreProfile.setEnabled(core, checked)) {
+                                                enabledCores = CoreProfile.cores.associateWith { CoreProfile.isEnabled(it) }
+                                            } else {
+                                                Toast.makeText(context, R.string.core_keep_one_enabled, Toast.LENGTH_SHORT).show()
+                                            }
+                                        },
+                                    )
+                                },
+                                colors =
+                                ListItemDefaults.colors(
+                                    containerColor = Color.Transparent,
+                                ),
+                            )
+                        }
+                    }
                     Box(modifier = Modifier.align(Alignment.BottomEnd)) {
                         DropdownMenu(
                             expanded = showVersionMenu,

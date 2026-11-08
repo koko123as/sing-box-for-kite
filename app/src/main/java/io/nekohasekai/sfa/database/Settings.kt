@@ -73,6 +73,10 @@ object Settings {
     // User routing rules (JSON list of RoutingRule), applied to every core.
     var routingRules by dataStore.string(SettingsKey.ROUTING_RULES) { "" }
 
+    // Cores the user turned off in Settings > Core (sing-box, xray, mihomo);
+    // at least one stays enabled.
+    var disabledCores by dataStore.stringSet(SettingsKey.DISABLED_CORES) { emptySet() }
+
     const val PER_APP_PROXY_DISABLED = 0
     const val PER_APP_PROXY_EXCLUDE = 1
     const val PER_APP_PROXY_INCLUDE = 2

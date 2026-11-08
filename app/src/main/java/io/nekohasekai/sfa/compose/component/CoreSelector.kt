@@ -10,6 +10,7 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -23,6 +24,10 @@ import io.nekohasekai.sfa.database.CoreProfile
 @Composable
 fun CoreSelector(selected: String, onSelected: (String) -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true) {
     val context = LocalContext.current
+    // Cores turned off in Settings > Core are not offered (the current choice stays visible).
+    val choices = remember(selected) {
+        CoreProfile.choices.filter { it == CoreProfile.AUTO || CoreProfile.isEnabled(it) || it == CoreProfile.normalize(selected) }
+    }
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
             text = stringResource(R.string.profile_core),
@@ -30,9 +35,9 @@ fun CoreSelector(selected: String, onSelected: (String) -> Unit, modifier: Modif
             color = MaterialTheme.colorScheme.primary,
         )
         SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-            CoreProfile.choices.forEachIndexed { index, core ->
+            choices.forEachIndexed { index, core ->
                 SegmentedButton(
-                    shape = SegmentedButtonDefaults.itemShape(index = index, count = CoreProfile.choices.size),
+                    shape = SegmentedButtonDefaults.itemShape(index = index, count = choices.size),
                     onClick = { onSelected(core) },
                     selected = CoreProfile.normalize(selected) == core,
                     enabled = enabled,

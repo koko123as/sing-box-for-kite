@@ -364,7 +364,7 @@
     <string name="error_empty_configuration">Пустая конфигурация</string>
     <string name="error_empty_file">Пустой файл</string>
     <string name="error_decode_profile">Не удалось декодировать профиль: %s</string>
-    <string name="error_invalid_configuration">Недопустимая конфигурация sing-box: %s</string>
+    <string name="error_invalid_configuration">Недопустимая конфигурация: %s</string>
     <string name="error_start_command_server">Запуск сервера команд</string>
     <string name="error_create_service">Создание службы</string>
     <string name="error_start_service">Запуск службы</string>
@@ -719,5 +719,7 @@
     <string name="geo_data_update_summary">geoip / geosite для правил Xray и mihomo</string>
     <string name="geo_data_updated">Геоданные обновлены</string>
     <string name="geo_data_update_failed">Не удалось обновить: %1$s</string>
+    <string name="core_keep_one_enabled">At least one core must stay enabled</string>
+    <string name="core_disabled">%s is turned off in Settings › Core</string>
     <string name="feedback_upstream">Сообщить о проблеме (upstream sing-box-for-android)</string>
 </resources>

@@ -360,7 +360,7 @@
     <string name="error_empty_configuration">Empty configuration</string>
     <string name="error_empty_file">Empty file</string>
     <string name="error_decode_profile">Failed to decode profile: %s</string>
-    <string name="error_invalid_configuration">Invalid sing-box configuration: %s</string>
+    <string name="error_invalid_configuration">Invalid configuration: %s</string>
     <string name="error_start_command_server">Start command server</string>
     <string name="error_create_service">Create service</string>
     <string name="error_start_service">Start service</string>
@@ -784,5 +784,8 @@
     <string name="geo_data_update_summary">geoip / geosite used by Xray and mihomo rules</string>
     <string name="geo_data_updated">Geo data updated</string>
     <string name="geo_data_update_failed">Update failed: %1$s</string>
+    <string name="core_keep_one_enabled">At least one core must stay enabled</string>
+    <string name="core_disabled">%s is turned off in Settings › Core</string>
+    <string name="about_app_summary">Version %s · sing-box, Xray and mihomo in one app</string>
     <string name="feedback_upstream">Issues (upstream sing-box-for-android)</string>
 </resources>

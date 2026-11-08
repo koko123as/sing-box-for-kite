@@ -360,7 +360,7 @@
     <string name="error_empty_configuration">設定為空</string>
     <string name="error_empty_file">空檔案</string>
     <string name="error_decode_profile">解碼設定檔失敗：%s</string>
-    <string name="error_invalid_configuration">無效的 sing-box 設定：%s</string>
+    <string name="error_invalid_configuration">無效的設定：%s</string>
     <string name="error_start_command_server">啟動命令伺服器</string>
     <string name="error_create_service">建立服務</string>
     <string name="error_start_service">啟動服務</string>
@@ -716,5 +716,8 @@
     <string name="geo_data_update_summary">Xray 與 mihomo 規則使用的 geoip / geosite</string>
     <string name="geo_data_updated">地理資料已更新</string>
     <string name="geo_data_update_failed">更新失敗：%1$s</string>
+    <string name="core_keep_one_enabled">至少需要保留一個核心啟用</string>
+    <string name="core_disabled">%s 核心已在 設定 › 核心 中關閉</string>
+    <string name="about_app_summary">版本 %s · sing-box、Xray、mihomo 三核心</string>
     <string name="feedback_upstream">問題回報（上游 sing-box-for-android）</string>
 </resources>
