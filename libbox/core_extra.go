@@ -3,8 +3,10 @@ package libbox
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
+	"os"
 	"sync"
 	"time"
 
@@ -25,6 +27,8 @@ import (
 	xrayCore "github.com/xtls/xray-core/core"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
@@ -77,11 +81,43 @@ func (c *afterFuncConn) Close() error {
 // OpenConnect, OpenVPN, Taildrop): while Xray or mihomo runs there is nothing
 // to report, so the stream stays open and empty instead of failing with
 // "invalid argument" (the sing-box service itself is idle then).
+//
+// Switching profiles stops one core before the next one starts. A stream
+// opened in that gap (or one sing-box answers while it is still starting or
+// already stopping) would get os.ErrInvalid from sing-box; it waits for the
+// next core instead and retries, so the UI never sees that error.
 func idleWhileOtherCore[T any](server grpc.ServerStreamingServer[T], singBox func(grpc.ServerStreamingServer[T]) error) error {
-	return switchStream(server, singBox, func(ctx context.Context, _ *runningCore, _ func(*T) error) error {
-		<-ctx.Done()
-		return ctx.Err()
-	})
+	ctx := server.Context()
+	for {
+		change, _ := currentCoreChange()
+		err := switchStream(server, singBox, func(ctx context.Context, _ *runningCore, _ func(*T) error) error {
+			<-ctx.Done()
+			return ctx.Err()
+		})
+		if err == nil || ctx.Err() != nil || !singBoxNotRunning(err) {
+			return err
+		}
+		timer := time.NewTimer(singBoxRetryInterval)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			return ctx.Err()
+		case <-change:
+			timer.Stop()
+		case <-timer.C:
+		}
+	}
+}
+
+// singBoxRetryInterval is how often a sing-box-only stream retries while no
+// core runs; a core change retries at once.
+var singBoxRetryInterval = 500 * time.Millisecond
+
+// singBoxNotRunning reports the errors sing-box's StartedService answers
+// with while no sing-box instance runs: idle or stopping (os.ErrInvalid),
+// the service closing (os.ErrClosed) or a failed start (FailedPrecondition).
+func singBoxNotRunning(err error) bool {
+	return errors.Is(err, os.ErrInvalid) || errors.Is(err, os.ErrClosed) || status.Code(err) == codes.FailedPrecondition
 }
 
 func (s *coreStartedService) SubscribeTailscaleStatus(empty *emptypb.Empty, server grpc.ServerStreamingServer[daemon.TailscaleStatusUpdate]) error {

@@ -71,6 +71,17 @@ func coreConfigArrayElements(text string) ([]json.RawMessage, bool) {
 // update find the same element again); sing-box rejects unknown keys, so
 // "remarks" is removed from sing-box elements. Nothing else is converted.
 func SplitCoreConfigArray(content string) (*CoreConfigEntries, error) {
+	return splitCoreConfigArray(content, true)
+}
+
+// SplitCoreConfigArrayEach splits a JSON array of configs into exactly one
+// entry per element, never merging: a subscription that serves several
+// configs becomes one profile per config.
+func SplitCoreConfigArrayEach(content string) (*CoreConfigEntries, error) {
+	return splitCoreConfigArray(content, false)
+}
+
+func splitCoreConfigArray(content string, merge bool) (*CoreConfigEntries, error) {
 	elements, ok := coreConfigArrayElements(normalizeCoreContent(content))
 	if !ok {
 		return nil, fmt.Errorf("not a JSON array of configs")
@@ -82,12 +93,14 @@ func SplitCoreConfigArray(content string) (*CoreConfigEntries, error) {
 	}
 	// One node per element with everything else shared: one profile whose
 	// nodes form a group (core_array_merge.go).
-	if merged, ok := mergeXrayConfigArray(elements, remarks); ok {
-		var indented bytes.Buffer
-		if err := json.Indent(&indented, merged, "", "  "); err == nil {
-			indented.WriteByte('\n')
-			result.entries = append(result.entries, coreConfigEntry{content: indented.String(), core: CoreXray})
-			return result, nil
+	if merge {
+		if merged, ok := mergeXrayConfigArray(elements, remarks); ok {
+			var indented bytes.Buffer
+			if err := json.Indent(&indented, merged, "", "  "); err == nil {
+				indented.WriteByte('\n')
+				result.entries = append(result.entries, coreConfigEntry{content: indented.String(), core: CoreXray})
+				return result, nil
+			}
 		}
 	}
 	for index, element := range elements {

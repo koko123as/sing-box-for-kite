@@ -157,7 +157,11 @@ func (s *CommandServer) RunningCore() string {
 func (s *CommandServer) StartOrReloadCoreService(core string, configContent string, options *OverrideOptions) error {
 	if core == CoreSingBox || core == "" {
 		s.stopOtherCore()
-		return s.StartOrReloadService(withDefaultSingBoxLogLevel(dropUnbuiltTunStack(configContent)), options)
+		if err := s.StartOrReloadService(withDefaultSingBoxLogLevel(dropUnbuiltTunStack(configContent)), options); err != nil {
+			return coreError(CoreSingBox, err)
+		}
+		go releaseCoreMemory()
+		return nil
 	}
 	if core != CoreXray && core != CoreMihomo {
 		return fmt.Errorf("unknown core: %s", core)
@@ -193,6 +197,9 @@ func (s *CommandServer) StartOrReloadCoreService(core string, configContent stri
 	activeCore = running
 	s.StartedService.WriteMessage(log.LevelInfo, core+" started")
 	go notifyCoreChange()
+	// Parsing the profile and its geo data leaves garbage behind; hand it
+	// back to the system now instead of when the scavenger gets to it.
+	go releaseCoreMemory()
 	return nil
 }
 
@@ -236,6 +243,7 @@ func (s *CommandServer) stopOtherCore() {
 	case CoreMihomo:
 		mihomoExecutor.Shutdown()
 		mihomoCloseListeners()
+		mihomoReleaseState()
 		if running.mihomoLog != nil {
 			close(running.mihomoLog)
 		}
@@ -247,6 +255,7 @@ func (s *CommandServer) stopOtherCore() {
 	_ = syscall.Close(running.tunFd)
 	s.StartedService.WriteMessage(log.LevelInfo, running.core+" stopped")
 	go notifyCoreChange()
+	go releaseCoreMemory()
 }
 
 func (s *CommandServer) openCoreTun(options *OverrideOptions) (int, error) {
@@ -474,6 +483,8 @@ func startMihomoCore(s *CommandServer, running *runningCore, content string) err
 	}
 	config.General.Tun.FileDescriptor = mihomoFd
 	mihomoExecutor.ApplyConfig(config, true)
+	// The rules' GeoSite matchers are built now; the raw domain lists mihomo
+	// caches beside them are not needed while it runs.
+	mihomoDropGeoSiteLists()
 	return nil
 }
-

@@ -159,15 +159,39 @@ func CoreSubscriptionUserAgent(core string, appVersion string) string {
 	}
 }
 
-// CheckCoreConfig validates content with the parser of the given core.
+// CoreDisplayName is the name the UI shows for a core.
+func CoreDisplayName(core string) string {
+	switch core {
+	case CoreSingBox:
+		return "sing-box"
+	case CoreXray:
+		return "Xray"
+	case CoreMihomo:
+		return "mihomo"
+	default:
+		return core
+	}
+}
+
+// coreError prefixes err with the core that reported it, so a failed check
+// or start says which core rejected the profile ("mihomo: ...").
+func coreError(core string, err error) error {
+	if err == nil {
+		return nil
+	}
+	return fmt.Errorf("%s: %w", CoreDisplayName(core), err)
+}
+
+// CheckCoreConfig validates content with the parser of the given core. The
+// error names the core that rejected it.
 func CheckCoreConfig(core string, content string) error {
 	switch core {
 	case CoreSingBox:
-		return CheckConfig(content)
+		return coreError(core, CheckConfig(content))
 	case CoreXray:
-		return checkXrayConfig(content)
+		return coreError(core, checkXrayConfig(content))
 	case CoreMihomo:
-		return checkMihomoConfig(content)
+		return coreError(core, checkMihomoConfig(content))
 	case CoreLinks:
 		return fmt.Errorf("share links must be converted to a profile first")
 	case CoreArray:
@@ -400,12 +424,12 @@ func convertLinksToMihomo(proxies []map[string]any) (*UICoreProfile, error) {
 		names = append(names, proxy["name"])
 	}
 	profile := map[string]any{
-		"mixed-port":  7890,
-		"allow-lan":   false,
-		"mode":        "rule",
-		"log-level":   "warning",
-		"ipv6":        true,
-		"proxies":     proxies,
+		"mixed-port": 7890,
+		"allow-lan":  false,
+		"mode":       "rule",
+		"log-level":  "warning",
+		"ipv6":       true,
+		"proxies":    proxies,
 		"proxy-groups": []any{
 			map[string]any{"name": "PROXY", "type": "select", "proxies": append([]any{"AUTO"}, names...)},
 			map[string]any{"name": "AUTO", "type": "url-test", "proxies": names, "url": "https://www.gstatic.com/generate_204", "interval": 300},
