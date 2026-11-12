@@ -519,7 +519,8 @@ fun ToolsScreen(
     }
 }
 
-private val STATUS_BAR_CONTENT_PADDING = 74.dp
+// The scaffold padding already includes the status bar's height.
+private val STATUS_BAR_CONTENT_PADDING = 8.dp
 
 private fun endpointRowShape(index: Int, count: Int): RoundedCornerShape = when {
     count == 1 -> RoundedCornerShape(12.dp)

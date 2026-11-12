@@ -9,7 +9,7 @@ import io.nekohasekai.sfa.update.UpdateState
 
 class InstallResultReceiver : BroadcastReceiver() {
     companion object {
-        const val ACTION_INSTALL_COMPLETE = "io.nekohasekai.sfa.INSTALL_COMPLETE"
+        const val ACTION_INSTALL_COMPLETE = "io.kitebox.app.INSTALL_COMPLETE"
         private const val TAG = "InstallResultReceiver"
     }
 

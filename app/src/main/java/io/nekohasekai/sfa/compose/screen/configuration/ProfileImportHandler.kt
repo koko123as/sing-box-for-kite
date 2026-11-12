@@ -6,6 +6,7 @@ import android.provider.OpenableColumns
 import io.nekohasekai.libbox.Libbox
 import io.nekohasekai.libbox.ProfileContent
 import io.nekohasekai.sfa.R
+import io.nekohasekai.sfa.database.CoreProfile
 import io.nekohasekai.sfa.database.Profile
 import io.nekohasekai.sfa.database.ProfileManager
 import io.nekohasekai.sfa.database.TypedProfile
@@ -41,7 +42,7 @@ class ProfileImportHandler(private val context: Context) {
         data class Error(val message: String) : UriParseResult()
     }
 
-    suspend fun importFromUri(uri: Uri): ImportResult = withContext(Dispatchers.IO) {
+    suspend fun importFromUri(uri: Uri, core: String = CoreProfile.AUTO): ImportResult = withContext(Dispatchers.IO) {
         try {
             val data =
                 context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
@@ -54,7 +55,7 @@ class ProfileImportHandler(private val context: Context) {
             val dataString = String(data)
             if (isJsonConfiguration(dataString)) {
                 // It's a JSON configuration, import it directly as a local profile
-                return@withContext importJsonConfiguration(dataString, filename)
+                return@withContext importJsonConfiguration(dataString, filename, core)
             }
 
             // Try to decode as ProfileContent (the old way)
@@ -67,7 +68,7 @@ class ProfileImportHandler(private val context: Context) {
                     )
                 }
 
-            importProfile(content)
+            importProfile(content, core)
         } catch (e: Exception) {
             ImportResult.Error(e.message ?: "Unknown error")
         }
@@ -129,6 +130,10 @@ class ProfileImportHandler(private val context: Context) {
                 )
             }
 
+            if (isJsonConfiguration(data)) {
+                return@withContext QRCodeParseResult.LocalProfile(name = shareLinkName(data))
+            }
+
             // Try to decode as profile content
             val content =
                 try {
@@ -145,13 +150,13 @@ class ProfileImportHandler(private val context: Context) {
         }
     }
 
-    suspend fun importFromQRCode(data: String): ImportResult = withContext(Dispatchers.IO) {
+    suspend fun importFromQRCode(data: String, core: String = CoreProfile.AUTO): ImportResult = withContext(Dispatchers.IO) {
         try {
             // Check if it's a sing-box remote profile import link
             if (data.startsWith("sing-box://import-remote-profile")) {
                 try {
                     val profileInfo = Libbox.parseRemoteProfileImportLink(data)
-                    return@withContext importRemoteProfile(profileInfo.name, profileInfo.url)
+                    return@withContext importRemoteProfile(profileInfo.name, profileInfo.url, core)
                 } catch (e: Exception) {
                     return@withContext ImportResult.Error(
                         context.getString(R.string.error_decode_profile, e.message),
@@ -163,7 +168,10 @@ class ProfileImportHandler(private val context: Context) {
             if (data.startsWith("http://") || data.startsWith("https://")) {
                 // Handle remote profile URL
                 val profileName = extractProfileNameFromUrl(data)
-                importRemoteProfile(profileName, data)
+                importRemoteProfile(profileName, data, core)
+            } else if (isJsonConfiguration(data)) {
+                // Share links (vmess://, vless://, ...) or a plain core configuration.
+                importJsonConfiguration(data, shareLinkName(data), core)
             } else {
                 // Try to decode as profile content
                 val content =
@@ -174,7 +182,7 @@ class ProfileImportHandler(private val context: Context) {
                             context.getString(R.string.error_decode_profile, e.message),
                         )
                     }
-                importProfile(content)
+                importProfile(content, core)
             }
         } catch (e: Exception) {
             ImportResult.Error(e.message ?: "Unknown error")
@@ -196,7 +204,7 @@ class ProfileImportHandler(private val context: Context) {
         }
     }
 
-    suspend fun importFromQRSData(data: ByteArray): ImportResult = withContext(Dispatchers.IO) {
+    suspend fun importFromQRSData(data: ByteArray, core: String = CoreProfile.AUTO): ImportResult = withContext(Dispatchers.IO) {
         try {
             val content = try {
                 Libbox.decodeProfileContent(data)
@@ -205,14 +213,19 @@ class ProfileImportHandler(private val context: Context) {
                     context.getString(R.string.error_decode_profile, e.message),
                 )
             }
-            importProfile(content)
+            importProfile(content, core)
         } catch (e: Exception) {
             ImportResult.Error(e.message ?: "Unknown error")
         }
     }
 
-    private suspend fun importProfile(content: ProfileContent): ImportResult {
-        val typedProfile = TypedProfile()
+    private suspend fun importProfile(content: ProfileContent, core: String): ImportResult {
+        if (content.type == Libbox.ProfileTypeLocal) {
+            // A local profile is checked (and share links converted) with the
+            // chosen core, like a plain configuration file.
+            return importJsonConfiguration(content.config, content.name, core)
+        }
+        val typedProfile = TypedProfile().apply { this.core = CoreProfile.normalize(core) }
         val profile = Profile(name = content.name, typed = typedProfile)
         profile.userOrder = ProfileManager.nextOrder()
 
@@ -245,9 +258,10 @@ class ProfileImportHandler(private val context: Context) {
         return ImportResult.Success(profile)
     }
 
-    private suspend fun importRemoteProfile(name: String, url: String): ImportResult {
+    private suspend fun importRemoteProfile(name: String, url: String, core: String): ImportResult {
         val typedProfile =
             TypedProfile().apply {
+                this.core = CoreProfile.normalize(core)
                 type = TypedProfile.Type.Remote
                 remoteURL = url
                 autoUpdate = true
@@ -271,6 +285,11 @@ class ProfileImportHandler(private val context: Context) {
         ProfileManager.create(profile, andSelect = true)
 
         return ImportResult.Success(profile)
+    }
+
+    private fun shareLinkName(data: String): String {
+        val fragment = data.lineSequence().firstOrNull { it.contains("://") }?.substringAfter('#', "")
+        return fragment?.let { runCatching { Uri.decode(it) }.getOrNull() }?.takeIf { it.isNotBlank() } ?: "Imported Profile"
     }
 
     private fun extractProfileNameFromUrl(url: String): String {
@@ -315,17 +334,25 @@ class ProfileImportHandler(private val context: Context) {
         return filename
     }
 
+    /**
+     * A plain configuration of one of the cores (sing-box / Xray JSON, mihomo
+     * YAML) or share links / a Base64 node list, as opposed to an exported
+     * sing-box profile file.
+     */
     private fun isJsonConfiguration(content: String): Boolean {
         val trimmed = content.trimStart()
-        return trimmed.startsWith("{") || trimmed.startsWith("[")
+        if (trimmed.startsWith("{") || trimmed.startsWith("[")) return true
+        return runCatching {
+            Libbox.detectCoreConfig(content) in setOf(Libbox.CoreMihomo, Libbox.CoreXray, Libbox.CoreLinks)
+        }.getOrDefault(false)
     }
 
-    private suspend fun importJsonConfiguration(jsonContent: String, profileName: String): ImportResult {
+    private suspend fun importJsonConfiguration(jsonContent: String, profileName: String, core: String): ImportResult {
         return try {
-            // Validate the JSON configuration using sing-box
-            try {
-                // Try to check the configuration
-                Libbox.checkConfig(jsonContent)
+            // Convert share links and validate with the chosen core ("auto"
+            // detects it). A JSON array of configs becomes one profile per config.
+            val entries = try {
+                CoreProfile.prepareAll(core, jsonContent)
             } catch (e: Exception) {
                 // Configuration validation failed
                 return ImportResult.Error(
@@ -333,31 +360,35 @@ class ProfileImportHandler(private val context: Context) {
                 )
             }
 
-            // Create a local profile with the JSON configuration
-            val typedProfile =
-                TypedProfile().apply {
-                    type = TypedProfile.Type.Local
-                }
+            val baseName = profileName.ifEmpty { "Imported Profile" }
+            var first: Profile? = null
+            for (entry in entries) {
+                val typedProfile =
+                    TypedProfile().apply {
+                        type = TypedProfile.Type.Local
+                        this.core = CoreProfile.normalize(core)
+                    }
+                val profile =
+                    Profile(
+                        name = if (entries.size > 1) "$baseName - ${entry.remarks.ifEmpty { entry.key }}" else baseName,
+                        typed = typedProfile,
+                    ).apply {
+                        userOrder = ProfileManager.nextOrder()
+                    }
 
-            val profile =
-                Profile(
-                    name = profileName.ifEmpty { "Imported Profile" },
-                    typed = typedProfile,
-                ).apply {
-                    userOrder = ProfileManager.nextOrder()
-                }
+                // Save the configuration file
+                val fileID = ProfileManager.nextFileID()
+                val configDirectory = File(context.filesDir, "configs").also { it.mkdirs() }
+                val configFile = File(configDirectory, "$fileID.json")
+                configFile.writeText(entry.content)
+                typedProfile.path = configFile.path
 
-            // Save the configuration file
-            val fileID = ProfileManager.nextFileID()
-            val configDirectory = File(context.filesDir, "configs").also { it.mkdirs() }
-            val configFile = File(configDirectory, "$fileID.json")
-            configFile.writeText(jsonContent)
-            typedProfile.path = configFile.path
+                // Create the profile in the database; the first one is selected
+                ProfileManager.create(profile, andSelect = first == null)
+                if (first == null) first = profile
+            }
 
-            // Create profile in database and select it
-            ProfileManager.create(profile, andSelect = true)
-
-            ImportResult.Success(profile)
+            ImportResult.Success(first!!)
         } catch (e: Exception) {
             ImportResult.Error(e.message ?: "Unknown error importing JSON configuration")
         }

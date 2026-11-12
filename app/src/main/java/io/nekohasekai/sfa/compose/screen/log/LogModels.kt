@@ -26,7 +26,8 @@ data class LogUiState(
     val isPaused: Boolean = false,
     val searchQuery: String = "",
     val isSearchActive: Boolean = false,
-    val defaultLogLevel: LogLevel = LogLevel.Default,
+    // Until the running core reports its level, show warn and above (the default of every core).
+    val defaultLogLevel: LogLevel = LogLevel.WARNING,
     val filterLogLevel: LogLevel = LogLevel.Default,
     val isOptionsMenuOpen: Boolean = false,
     val isSelectionMode: Boolean = false,

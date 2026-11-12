@@ -11,11 +11,9 @@ import androidx.work.WorkerParameters
 import io.nekohasekai.libbox.Libbox
 import io.nekohasekai.sfa.Application
 import io.nekohasekai.sfa.database.ProfileManager
+import io.nekohasekai.sfa.database.RemoteProfiles
 import io.nekohasekai.sfa.database.Settings
 import io.nekohasekai.sfa.database.TypedProfile
-import io.nekohasekai.sfa.utils.HTTPClient
-import java.io.File
-import java.util.Date
 import java.util.concurrent.TimeUnit
 
 class UpdateProfileWork {
@@ -75,17 +73,10 @@ class UpdateProfileWork {
                     continue
                 }
                 try {
-                    val content = HTTPClient().use { it.getString(profile.typed.remoteURL) }
-                    Libbox.checkConfig(content)
-                    val file = File(profile.typed.path)
-                    if (file.readText() != content) {
-                        File(profile.typed.path).writeText(content)
-                        if (profile.id == selectedProfile) {
-                            selectedProfileUpdated = true
-                        }
+                    // Splits a JSON array of configs: one profile per config.
+                    if (RemoteProfiles.update(profile) && profile.id == selectedProfile) {
+                        selectedProfileUpdated = true
                     }
-                    profile.typed.lastUpdated = Date()
-                    ProfileManager.update(profile)
                 } catch (e: Exception) {
                     Log.e(TAG, "update profile ${profile.name}", e)
                     success = false

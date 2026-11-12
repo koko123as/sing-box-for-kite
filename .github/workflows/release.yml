@@ -1,0 +1,147 @@
+name: Release APK
+
+# Builds the KiteBox release APK (multi-core libbox, arm64-v8a) and publishes
+# it as a GitHub release of this repository, which the in-app update checker
+# reads. Push a tag v<VERSION_NAME> (version.properties) to publish, or run
+# it by hand. A push that changes this workflow builds without publishing.
+on:
+  push:
+    tags:
+      - 'v*'
+    branches:
+      - feat/multicore
+    paths:
+      - .github/workflows/release.yml
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag (v<VERSION_NAME>); created on the selected commit when missing
+        required: false
+        default: ''
+      prerelease:
+        description: Mark the release as a pre-release (the Stable update track skips pre-releases)
+        type: boolean
+        default: false
+      publish:
+        description: Publish the release (off = build only)
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Release APK (other, arm64-v8a)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout app
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+          submodules: recursive
+
+      - name: Release tag and version
+        id: release
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+          INPUT_PUBLISH: ${{ inputs.publish }}
+        run: |
+          version=$(sed -n 's/^VERSION_NAME=//p' version.properties | tr -d '\r')
+          code=$(sed -n 's/^VERSION_CODE=//p' version.properties | tr -d '\r')
+          case "$GITHUB_EVENT_NAME" in
+            push)
+              if [[ "$GITHUB_REF" == refs/tags/* ]]; then tag="$GITHUB_REF_NAME"; publish=true; else tag="v$version"; publish=false; fi ;;
+            workflow_dispatch)
+              tag="${INPUT_TAG:-v$version}"; publish="$INPUT_PUBLISH" ;;
+          esac
+          if [ "$tag" != "v$version" ]; then
+            echo "::error::Tag $tag does not match version.properties VERSION_NAME=$version (expected v$version)"
+            exit 1
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          echo "publish=$publish" >> "$GITHUB_OUTPUT"
+
+      - id: core
+        uses: ./.github/actions/build-libbox
+        with:
+          platform: android/arm64
+
+      - name: Set up Java for Gradle
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Release keystore
+        env:
+          RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+          LOCAL_PROPERTIES: ${{ secrets.LOCAL_PROPERTIES }}
+        run: |
+          if [ -n "$RELEASE_KEYSTORE_BASE64" ]; then
+            echo "$RELEASE_KEYSTORE_BASE64" | base64 -d > app/release.keystore
+          fi
+          if [ -z "$LOCAL_PROPERTIES" ]; then
+            echo "::warning::Secret LOCAL_PROPERTIES (KEYSTORE_PASS / ALIAS_NAME / ALIAS_PASS, base64) is not set: the APK is signed with a throwaway debug key, so it cannot update an installed KiteBox in place."
+          fi
+
+      - name: Build release APK
+        env:
+          LOCAL_PROPERTIES: ${{ secrets.LOCAL_PROPERTIES }}
+        run: |
+          export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/28.0.13004108"
+          ./gradlew :app:assembleOtherRelease -Parm64Only=true \
+            --no-daemon --console=plain --max-workers=2 \
+            '-Dorg.gradle.jvmargs=-Xmx5g -Dfile.encoding=UTF-8' \
+            -Pkotlin.compiler.execution.strategy=in-process
+          ls -l app/build/outputs/apk/other/release/
+          for apk in app/build/outputs/apk/other/release/*.apk; do
+            echo "- $(basename "$apk"): $(stat -c %s "$apk") bytes" | tee -a "$GITHUB_STEP_SUMMARY"
+          done
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: KiteBox-${{ steps.release.outputs.version }}-arm64-v8a-release
+          path: app/build/outputs/apk/other/release/*.apk
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
+
+      - name: Publish GitHub release
+        if: steps.release.outputs.publish == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release.outputs.tag }}
+          VERSION: ${{ steps.release.outputs.version }}
+          CODE: ${{ steps.release.outputs.code }}
+          PRERELEASE: ${{ inputs.prerelease }}
+        run: |
+          notes=$(mktemp)
+          {
+            echo "KiteBox $VERSION (sing-box ${{ steps.core.outputs.version }} + Xray + mihomo), arm64-v8a."
+            echo
+            echo "Version code: $CODE"
+          } > "$notes"
+          flags=()
+          if [ "$PRERELEASE" = "true" ]; then flags+=(--prerelease); fi
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            gh release upload "$TAG" app/build/outputs/apk/other/release/*.apk --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "$TAG" app/build/outputs/apk/other/release/*.apk \
+              --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+              --title "KiteBox $VERSION" --notes-file "$notes" "${flags[@]}"
+          fi

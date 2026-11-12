@@ -64,6 +64,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.nekohasekai.sfa.R
 import io.nekohasekai.sfa.compose.base.SelectableMessageDialog
+import io.nekohasekai.sfa.compose.component.CoreSelector
 import io.nekohasekai.sfa.compose.topbar.LocalScaffoldPadding
 import io.nekohasekai.sfa.compose.topbar.OverrideTopBar
 import io.nekohasekai.sfa.compose.util.ProfileIcons
@@ -301,6 +302,21 @@ fun EditProfileScreen(
                             }
                         }
                     }
+                }
+
+                // Core
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors =
+                    CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                    ),
+                ) {
+                    CoreSelector(
+                        selected = uiState.core,
+                        onSelected = viewModel::updateCore,
+                        modifier = Modifier.padding(16.dp),
+                    )
                 }
 
                 // Remote Profile Options

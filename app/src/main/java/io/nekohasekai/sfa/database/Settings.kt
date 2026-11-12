@@ -70,6 +70,13 @@ object Settings {
     var dynamicNotification by dataStore.boolean(SettingsKey.DYNAMIC_NOTIFICATION) { true }
     var disableDeprecatedWarnings by dataStore.boolean(SettingsKey.DISABLE_DEPRECATED_WARNINGS) { false }
 
+    // User routing rules (JSON list of RoutingRule), applied to every core.
+    var routingRules by dataStore.string(SettingsKey.ROUTING_RULES) { "" }
+
+    // Cores the user turned off in Settings > Core (sing-box, xray, mihomo);
+    // at least one stays enabled.
+    var disabledCores by dataStore.stringSet(SettingsKey.DISABLED_CORES) { emptySet() }
+
     const val PER_APP_PROXY_DISABLED = 0
     const val PER_APP_PROXY_EXCLUDE = 1
     const val PER_APP_PROXY_INCLUDE = 2
@@ -161,6 +168,9 @@ object Settings {
         val selectedProfileId = selectedProfile
         if (selectedProfileId == -1L) return false
         val profile = ProfileManager.get(selectedProfileId) ?: return false
-        return Libbox.hasTunInbound(File(profile.typed.path).readText())
+        val content = File(profile.typed.path).readText()
+        // Xray and mihomo always run on the VpnService TUN.
+        if (Libbox.resolveProfileCore(profile.typed.core, content) != CoreProfile.SING_BOX) return true
+        return Libbox.hasTunInbound(content)
     }
 }

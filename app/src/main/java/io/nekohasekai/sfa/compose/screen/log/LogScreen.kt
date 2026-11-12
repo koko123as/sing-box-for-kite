@@ -507,7 +507,8 @@ fun LogScreen(
                 // Log list
                 val bottomPadding = when {
                     showStartFab -> 88.dp
-                    showStatusBar -> 74.dp
+                    // The scaffold padding already includes the status bar's height.
+                    showStatusBar -> 8.dp
                     else -> 0.dp
                 }
                 LazyColumn(
@@ -856,7 +857,8 @@ fun LogScreen(
         val fabBottomPadding = when {
             padFabVisible -> 20.dp + 64.dp + 16.dp
             showStartFab -> 88.dp
-            showStatusBar -> 74.dp
+            // The scaffold padding already includes the status bar's height.
+            showStatusBar -> 16.dp
             else -> 16.dp
         }
         val fabEndPadding = if (isTablet) 20.dp else 16.dp

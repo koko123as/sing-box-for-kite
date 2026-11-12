@@ -1,5 +1,6 @@
 package io.nekohasekai.sfa.compose.screen.dashboard
 
+import io.nekohasekai.sfa.compose.component.rememberProfileCoreLabel
 import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -9,6 +10,8 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import io.nekohasekai.sfa.database.CoreProfile
+import io.nekohasekai.sfa.compose.component.CoreSelector
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -120,6 +123,9 @@ fun ProfilesCard(
     var pendingImportName by remember { mutableStateOf<String?>(null) }
     var pendingQrsData by remember { mutableStateOf<ByteArray?>(null) }
     var pendingImportUri by remember { mutableStateOf<Uri?>(null) }
+    var pendingQRCodeData by remember { mutableStateOf<String?>(null) }
+    // The core the imported profile runs on: auto-detected by default.
+    var pendingImportCore by remember { mutableStateOf(CoreProfile.AUTO) }
 
     var showQRScanSheet by remember { mutableStateOf(false) }
 
@@ -134,6 +140,7 @@ fun ProfilesCard(
                             withContext(Dispatchers.Main) {
                                 pendingImportName = parseResult.name
                                 pendingImportUri = uri
+                                pendingImportCore = CoreProfile.AUTO
                                 showImportConfirmDialog = true
                             }
                         }
@@ -493,21 +500,43 @@ fun ProfilesCard(
                 pendingImportName = null
                 pendingQrsData = null
                 pendingImportUri = null
+                pendingQRCodeData = null
             },
             title = { Text(stringResource(R.string.import_profile_confirm_title)) },
-            text = { Text(stringResource(R.string.import_profile_confirm_message, pendingImportName!!)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Text(stringResource(R.string.import_profile_confirm_message, pendingImportName!!))
+                    CoreSelector(selected = pendingImportCore, onSelected = { pendingImportCore = it })
+                }
+            },
             confirmButton = {
                 TextButton(
                     onClick = {
                         showImportConfirmDialog = false
                         val qrsData = pendingQrsData
                         val importUri = pendingImportUri
+                        val qrCodeData = pendingQRCodeData
+                        val core = pendingImportCore
                         pendingImportName = null
                         pendingQrsData = null
                         pendingImportUri = null
+                        pendingQRCodeData = null
                         coroutineScope.launch {
-                            if (qrsData != null) {
-                                when (val result = importHandler.importFromQRSData(qrsData)) {
+                            if (qrCodeData != null) {
+                                when (val result = importHandler.importFromQRCode(qrCodeData, core)) {
+                                    is ProfileImportHandler.ImportResult.Success -> {
+                                        withContext(Dispatchers.Main) {
+                                            onProfileEdit(result.profile)
+                                        }
+                                    }
+                                    is ProfileImportHandler.ImportResult.Error -> {
+                                        withContext(Dispatchers.Main) {
+                                            context.errorDialogBuilder(Exception(result.message)).show()
+                                        }
+                                    }
+                                }
+                            } else if (qrsData != null) {
+                                when (val result = importHandler.importFromQRSData(qrsData, core)) {
                                     is ProfileImportHandler.ImportResult.Success -> {
                                         withContext(Dispatchers.Main) {
                                             onProfileEdit(result.profile)
@@ -520,7 +549,7 @@ fun ProfilesCard(
                                     }
                                 }
                             } else if (importUri != null) {
-                                when (val result = importHandler.importFromUri(importUri)) {
+                                when (val result = importHandler.importFromUri(importUri, core)) {
                                     is ProfileImportHandler.ImportResult.Success -> {
                                         withContext(Dispatchers.Main) {
                                             onProfileEdit(result.profile)
@@ -546,6 +575,7 @@ fun ProfilesCard(
                         pendingImportName = null
                         pendingQrsData = null
                         pendingImportUri = null
+                        pendingQRCodeData = null
                     },
                 ) {
                     Text(stringResource(R.string.cancel))
@@ -567,6 +597,7 @@ fun ProfilesCard(
                                     withContext(Dispatchers.Main) {
                                         pendingImportName = parseResult.name
                                         pendingQrsData = result.data
+                                        pendingImportCore = CoreProfile.AUTO
                                         showImportConfirmDialog = true
                                     }
                                 }
@@ -592,17 +623,11 @@ fun ProfilesCard(
                                     }
                                 }
                                 is ProfileImportHandler.QRCodeParseResult.LocalProfile -> {
-                                    when (val importResult = importHandler.importFromQRCode(result.uri.toString())) {
-                                        is ProfileImportHandler.ImportResult.Success -> {
-                                            withContext(Dispatchers.Main) {
-                                                onProfileEdit(importResult.profile)
-                                            }
-                                        }
-                                        is ProfileImportHandler.ImportResult.Error -> {
-                                            withContext(Dispatchers.Main) {
-                                                context.errorDialogBuilder(Exception(importResult.message)).show()
-                                            }
-                                        }
+                                    withContext(Dispatchers.Main) {
+                                        pendingImportName = parseResult.name
+                                        pendingQRCodeData = result.uri.toString()
+                                        pendingImportCore = CoreProfile.AUTO
+                                        showImportConfirmDialog = true
                                     }
                                 }
                                 is ProfileImportHandler.QRCodeParseResult.Error -> {
@@ -662,12 +687,15 @@ private fun ProfileInfoRow(profile: Profile?) {
                 modifier = Modifier.size(14.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            val coreLabel = rememberProfileCoreLabel(profile)
+            val typeLabel = if (profile.typed.type == TypedProfile.Type.Remote) {
+                stringResource(R.string.profile_type_remote)
+            } else {
+                stringResource(R.string.profile_type_local)
+            }
             Text(
-                text = if (profile.typed.type == TypedProfile.Type.Remote) {
-                    stringResource(R.string.profile_type_remote)
-                } else {
-                    stringResource(R.string.profile_type_local)
-                },
+                // e.g. "mihomo • Remote"; the update time follows
+                text = if (coreLabel != null) "$coreLabel • $typeLabel" else typeLabel,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

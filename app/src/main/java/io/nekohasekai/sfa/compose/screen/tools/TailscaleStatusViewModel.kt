@@ -1,14 +1,22 @@
 package io.nekohasekai.sfa.compose.screen.tools
 
+import android.util.Log
 import androidx.lifecycle.viewModelScope
 import io.nekohasekai.libbox.TailscaleStatusHandler
 import io.nekohasekai.libbox.TailscaleStatusSubscription
 import io.nekohasekai.libbox.TailscaleStatusUpdate
 import io.nekohasekai.sfa.compose.base.BaseViewModel
+import io.nekohasekai.sfa.database.CoreProfile
 import io.nekohasekai.sfa.utils.CommandTarget
 import io.nekohasekai.sfa.utils.StreamSubscription
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 
 data class TailscalePeerData(
     val id: String,
@@ -76,46 +84,93 @@ data class TailscaleStatusState(
 )
 
 class TailscaleStatusViewModel : BaseViewModel<TailscaleStatusState, Nothing>() {
+    private companion object {
+        const val TAG = "TailscaleStatus"
+
+        // How often the active core is re-checked, and how long to wait
+        // before reopening a stream that ended (e.g. during a core switch).
+        const val CORE_CHECK_INTERVAL = 1500L
+        const val RETRY_DELAY = 1000L
+    }
+
     private val statusSubscription = StreamSubscription<TailscaleStatusSubscription> { it.close() }
+    private var subscriptionJob: Job? = null
 
     override fun createInitialState() = TailscaleStatusState()
 
+    /**
+     * Follows the Tailscale status of the running service. Tailscale exists
+     * only in sing-box: while the selected profile runs on Xray or mihomo the
+     * status is not queried at all. A stream that fails (the core is being
+     * switched, or the next one is still starting) is reopened silently
+     * instead of showing an error.
+     */
     fun subscribe() {
         if (currentState.isSubscribed) return
-        val token = statusSubscription.open()
         updateState { copy(isSubscribed = true) }
-
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val session = CommandTarget.standaloneClient()
-                    .subscribeTailscaleStatus(object : TailscaleStatusHandler {
-                        override fun onStatusUpdate(status: TailscaleStatusUpdate) {
-                            val endpoints = convertUpdate(status)
-                            viewModelScope.launch {
-                                if (!currentState.isSubscribed) return@launch
-                                updateState { copy(endpoints = endpoints, hasUpdate = true) }
-                            }
-                        }
-
-                        override fun onError(message: String) {
-                            statusSubscription.discard(token)
-                            viewModelScope.launch {
-                                if (!currentState.isSubscribed) return@launch
-                                updateState { copy(endpoints = emptyList(), isSubscribed = false, hasUpdate = false) }
-                                sendErrorMessage(message)
-                            }
-                        }
-                    })
-                statusSubscription.store(token, session)
-            } catch (_: Exception) {
-                viewModelScope.launch {
-                    updateState { copy(endpoints = emptyList(), isSubscribed = false, hasUpdate = false) }
+        subscriptionJob?.cancel()
+        subscriptionJob = viewModelScope.launch(Dispatchers.IO) {
+            while (isActive) {
+                if (!singBoxActive()) {
+                    clearEndpoints()
+                    delay(CORE_CHECK_INTERVAL)
+                    continue
                 }
+                val ended = CompletableDeferred<String>()
+                val token = statusSubscription.open()
+                try {
+                    val session = CommandTarget.standaloneClient()
+                        .subscribeTailscaleStatus(object : TailscaleStatusHandler {
+                            override fun onStatusUpdate(status: TailscaleStatusUpdate) {
+                                val endpoints = convertUpdate(status)
+                                viewModelScope.launch {
+                                    if (!currentState.isSubscribed) return@launch
+                                    updateState { copy(endpoints = endpoints, hasUpdate = true) }
+                                }
+                            }
+
+                            override fun onError(message: String) {
+                                ended.complete(message)
+                            }
+                        })
+                    statusSubscription.store(token, session)
+                } catch (e: Exception) {
+                    ended.complete(e.message ?: "")
+                }
+                // Stay on this stream until it ends or the service switches
+                // to a core without Tailscale.
+                while (isActive && !ended.isCompleted) {
+                    withTimeoutOrNull(CORE_CHECK_INTERVAL) { ended.await() }
+                    if (!ended.isCompleted && !singBoxActive()) break
+                }
+                statusSubscription.close()
+                if (ended.isCompleted) {
+                    Log.d(TAG, "status stream ended, retrying: ${ended.await()}")
+                }
+                delay(RETRY_DELAY)
+            }
+        }
+    }
+
+    private suspend fun singBoxActive(): Boolean {
+        // A remote server reports its own Tailscale status; locally only the
+        // sing-box core has Tailscale endpoints.
+        if (CommandTarget.isRemote) return true
+        val core = CoreProfile.selectedCore() ?: return true
+        return core == CoreProfile.SING_BOX
+    }
+
+    private suspend fun clearEndpoints() {
+        withContext(Dispatchers.Main) {
+            if (currentState.endpoints.isNotEmpty() || currentState.hasUpdate) {
+                updateState { copy(endpoints = emptyList(), hasUpdate = false) }
             }
         }
     }
 
     fun cancel() {
+        subscriptionJob?.cancel()
+        subscriptionJob = null
         statusSubscription.close()
         updateState { copy(endpoints = emptyList(), isSubscribed = false, hasUpdate = false) }
     }

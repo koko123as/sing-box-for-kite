@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
     <!-- App -->
-    <string name="app_name" translatable="false">sing-box</string>
+    <string name="app_name" translatable="false">KiteBox</string>
     <string name="app_version_title">App version</string>
     <string name="language">Language</string>
     <string name="system_default">System default</string>
@@ -263,12 +263,12 @@
     <string name="background_permission_description">Apply for the necessary permissions in order for the VPN to function properly.\n\nIf you are using a device made by a Chinese company, the card may not disappear after the permission is granted.</string>
     <string name="request_background_permission">Ignore</string>
     <string name="location_permission_title">Location permission</string>
-    <string name="location_permission_description">Your profile contains &lt;strong&gt;&lt;tt&gt;wifi_ssid&lt;/tt&gt; or &lt;tt&gt;wifi_bssid&lt;/tt&gt; routing rules&lt;/strong&gt;. To make them work, sing-box uses the &lt;strong&gt;location&lt;/strong&gt; permission &lt;strong&gt;in the background&lt;/strong&gt; to get information about the connected Wi-Fi network. The information will be used &lt;strong&gt;for routing purposes only&lt;/strong&gt;.</string>
+    <string name="location_permission_description">Your profile contains &lt;strong&gt;&lt;tt&gt;wifi_ssid&lt;/tt&gt; or &lt;tt&gt;wifi_bssid&lt;/tt&gt; routing rules&lt;/strong&gt;. To make them work, KiteBox uses the &lt;strong&gt;location&lt;/strong&gt; permission &lt;strong&gt;in the background&lt;/strong&gt; to get information about the connected Wi-Fi network. The information will be used &lt;strong&gt;for routing purposes only&lt;/strong&gt;.</string>
     <string name="location_permission_background_description">On Android 10 and up, &lt;strong&gt;background location&lt;/strong&gt; permission is required. Select &lt;strong&gt;Allow all the time&lt;/strong&gt; to grant the permission.</string>
     <string name="local_network_permission_title">Local network permission</string>
     <string name="local_network_permission_description">Android 17 and later versions require the local network permission to access your Wi-Fi or Ethernet network. Android requests it as nearby devices.</string>
     <string name="notification_permission_title">Notification permission</string>
-    <string name="notification_permission_required_description">sing-box is unable to show real-time network speeds without the permission to send notifications. Please grant the permission or disable real-time network speeds notification before starting the service.</string>
+    <string name="notification_permission_required_description">KiteBox is unable to show real-time network speeds without the permission to send notifications. Please grant the permission or disable real-time network speeds notification before starting the service.</string>
     <string name="root_access_required">Root access required</string>
     <string name="root_access_denied">Root access denied</string>
 
@@ -360,7 +360,7 @@
     <string name="error_empty_configuration">Empty configuration</string>
     <string name="error_empty_file">Empty file</string>
     <string name="error_decode_profile">Failed to decode profile: %s</string>
-    <string name="error_invalid_configuration">Invalid sing-box configuration: %s</string>
+    <string name="error_invalid_configuration">Invalid configuration: %s</string>
     <string name="error_start_command_server">Start command server</string>
     <string name="error_create_service">Create service</string>
     <string name="error_start_service">Start service</string>
@@ -567,7 +567,7 @@
     <string name="taildrop_no_files_selected">No files selected</string>
     <string name="taildrop_connecting">Connecting…</string>
     <string name="taildrop_dismiss">Dismiss</string>
-    <string name="taildrop_open_app">Open sing-box</string>
+    <string name="taildrop_open_app">Open KiteBox</string>
     <string name="taildrop_notification_title">Sending files</string>
 
     <!-- STUN Test -->
@@ -625,7 +625,7 @@
     <string name="power_report_enable_description">A report is saved for each service run</string>
 
     <!-- Xposed Module -->
-    <string name="xposed_description">Privileged Enhancement for sing-box</string>
+    <string name="xposed_description">Privileged Enhancement for KiteBox</string>
 
     <!-- Privileged Enhancement -->
     <string name="privilege_module_title">Privilege modules</string>
@@ -743,4 +743,48 @@
     <string name="endpoint_browser_navigation_failed">Browser navigation failed: %1$s</string>
     <string name="endpoint_browser_too_many_windows">The authentication page opened too many browser windows.</string>
     <string name="endpoint_browser_profile_unavailable">Browser authentication is unavailable on this device.</string>
+    <string name="core_auto">Auto</string>
+    <string name="profile_core">Core</string>
+    <string name="profile_core_hint">Auto picks the core from the configuration: sing-box JSON, Xray JSON or Clash/mihomo YAML. Share links are converted into a profile of the chosen core. Xray and mihomo run in VPN mode only.</string>
+    <string name="routing_rules">Routing rules</string>
+    <string name="routing_rules_note">Rules apply to whichever core runs (sing-box, Xray or mihomo) at start and reload, ahead of the profile\'s own rules. A rule whose node or group is not in the running profile is skipped and logged as a warning. App rules work in VPN mode only.</string>
+    <string name="routing_rules_empty">No routing rules yet</string>
+    <string name="routing_rule_add">Add rule</string>
+    <string name="routing_rule_edit">Edit rule</string>
+    <string name="routing_rule_untitled">Untitled rule</string>
+    <string name="routing_rule_remarks">Remarks</string>
+    <string name="routing_rule_enabled">Enabled</string>
+    <string name="routing_rule_domain">Domains</string>
+    <string name="routing_rule_domain_hint">One per line. Without prefix: the domain and its subdomains. Prefixes: full:, domain:, keyword:, regexp:, geosite:</string>
+    <string name="routing_rule_ip">IPs</string>
+    <string name="routing_rule_ip_hint">One per line: IP, CIDR or geoip:cn</string>
+    <string name="routing_rule_apps">Apps</string>
+    <string name="routing_rule_apps_hint">Package names, one per line. Works in VPN mode only.</string>
+    <string name="routing_rule_apps_select">Select apps</string>
+    <string name="routing_rule_apps_search">Search apps</string>
+    <string name="routing_rule_port">Port</string>
+    <string name="routing_rule_port_hint">Optional, e.g. 443 or 1000-2000, comma separated</string>
+    <string name="routing_rule_network">Network</string>
+    <string name="routing_rule_network_any">TCP + UDP</string>
+    <string name="routing_rule_target">Target</string>
+    <string name="routing_rule_target_proxy">Node / group</string>
+    <string name="routing_rule_target_direct">Direct</string>
+    <string name="routing_rule_target_block">Block</string>
+    <string name="routing_rule_outbound">Node or group name</string>
+    <string name="routing_rule_targets_of">Nodes and groups of %1$s</string>
+    <string name="routing_rule_no_targets">No nodes or groups found in the selected profile</string>
+    <string name="routing_rule_delete_confirm">Delete this rule?</string>
+    <string name="routing_rule_error_no_match">Add at least one domain, IP, app, port or network</string>
+    <string name="routing_rule_error_no_outbound">Choose a node or group</string>
+    <string name="routing_rule_move_up">Move up</string>
+    <string name="routing_rule_move_down">Move down</string>
+    <string name="routing_rule_summary_counts">%1$d domains · %2$d IPs · %3$d apps</string>
+    <string name="geo_data_update">Update geo data</string>
+    <string name="geo_data_update_summary">geoip / geosite used by Xray and mihomo rules</string>
+    <string name="geo_data_updated">Geo data updated</string>
+    <string name="geo_data_update_failed">Update failed: %1$s</string>
+    <string name="feedback_upstream">Issues (upstream sing-box-for-android)</string>
+    <string name="core_keep_one_enabled">At least one core must stay enabled</string>
+    <string name="core_disabled">%s is turned off in Settings › Core</string>
+    <string name="about_app_summary">Version %s · sing-box, Xray and mihomo in one app</string>
 </resources>

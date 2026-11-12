@@ -10,6 +10,7 @@ import android.util.Log
 import io.nekohasekai.libbox.Libbox
 import io.nekohasekai.libbox.Notification
 import io.nekohasekai.libbox.TunOptions
+import io.nekohasekai.sfa.R
 import io.nekohasekai.sfa.database.Settings
 import io.nekohasekai.sfa.ktx.toIpPrefix
 import io.nekohasekai.sfa.ktx.toList
@@ -60,7 +61,7 @@ class VPNService :
 
         val builder =
             Builder()
-                .setSession("sing-box")
+                .setSession(getString(R.string.app_name))
                 .setMtu(options.mtu)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
